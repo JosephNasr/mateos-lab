@@ -1,0 +1,189 @@
+# docker-compose.yml
+#
+# Media request + automation + torrent download + streaming + LAN file sharing (SMB)
+# Stack:
+# - Overseerr (requests)
+# - Prowlarr (indexers manager)
+# - Sonarr (TV automation)
+# - Radarr (Movies automation)
+# - qBittorrent (torrent client)
+# - Jellyfin (streaming UI for Google TV)  [VLC can also use SMB share]
+# - Samba (SMB share so VLC on Google TV can browse/play files)
+#
+# Prereqs on the Pi:
+#   1) Install Docker + Docker Compose plugin
+#   2) Create folders listed below
+#   3) Create a .env file (template below)
+#
+# Recommended storage:
+#   Use an SSD and mount it at /srv (or change paths in .env)
+#
+# Create folders (example):
+#   sudo mkdir -p /srv/media/{movies,tv} /srv/downloads/{incomplete,complete} /srv/appdata/{qbittorrent,prowlarr,sonarr,radarr,overseerr,jellyfin,samba}
+#   sudo chown -R $USER:$USER /srv/media /srv/downloads /srv/appdata
+#
+# Then:
+#   docker compose up -d
+#
+# Web UIs:
+#   Overseerr:  http://PI_IP:5055
+#   Prowlarr:   http://PI_IP:9696
+#   Sonarr:     http://PI_IP:8989
+#   Radarr:     http://PI_IP:7878
+#   qBittorrent:http://PI_IP:8080
+#   Jellyfin:   http://PI_IP:8096
+#
+# Google TV:
+#   - Jellyfin app: add server PI_IP:8096
+#   - VLC via SMB: browse \\PI_IP\media (credentials in .env)
+
+services:
+  # ---------- Requests portal ----------
+  # jellyseerr:
+  #   image: fallenbagel/jellyseerr:latest
+  #   container_name: jellyseerr
+  #   environment:
+  #     - TZ=${TIMEZONE}
+  #   volumes:
+  #     - ${APPDATA_DIR}/jellyseerr:/app/config
+  #   ports:
+  #     - "5055:5055"
+  #   restart: unless-stopped
+  #   networks:
+  #     - plex_net
+  #   depends_on:
+  #     - jellyfin
+
+  # # ---------- Indexers manager ----------
+  # prowlarr:
+  #   image: lscr.io/linuxserver/prowlarr:latest
+  #   container_name: prowlarr
+  #   environment:
+  #     - PUID=${PUID}
+  #     - PGID=${PGID}
+  #     - TZ=${TIMEZONE}
+  #   volumes:
+  #     - ${APPDATA_DIR}/prowlarr:/config
+  #   ports:
+  #     - "9696:9696"
+  #   restart: unless-stopped
+  #   networks:
+  #     - plex_net
+
+  # # ---------- TV automation ----------
+  # sonarr:
+  #   image: lscr.io/linuxserver/sonarr:latest
+  #   container_name: sonarr
+  #   environment:
+  #     - PUID=${PUID}
+  #     - PGID=${PGID}
+  #     - TZ=${TIMEZONE}
+  #     - UMASK=${UMASK}
+  #   volumes:
+  #     - ${APPDATA_DIR}/sonarr:/config
+  #     - ${TV_DIR}:/tv
+  #     - ${DOWNLOADS_DIR}:/downloads
+  #   ports:
+  #     - "8989:8989"
+  #   restart: unless-stopped
+  #   networks:
+  #     - plex_net
+  #   depends_on:
+  #     - qbittorrent
+
+  # # ---------- Movies automation ----------
+  # radarr:
+  #   image: lscr.io/linuxserver/radarr:latest
+  #   container_name: radarr
+  #   environment:
+  #     - PUID=${PUID}
+  #     - PGID=${PGID}
+  #     - TZ=${TIMEZONE}
+  #     - UMASK=${UMASK}
+  #   volumes:
+  #     - ${APPDATA_DIR}/radarr:/config
+  #     - ${MOVIES_DIR}:/movies
+  #     - ${DOWNLOADS_DIR}:/downloads
+  #   ports:
+  #     - "7878:7878"
+  #   restart: unless-stopped
+  #   networks:
+  #     - plex_net
+  #   depends_on:
+  #     - qbittorrent
+
+  # # ---------- Torrent client ----------
+  # qbittorrent:
+  #   image: lscr.io/linuxserver/qbittorrent:latest
+  #   container_name: qbittorrent
+  #   environment:
+  #     - PUID=${PUID}
+  #     - PGID=${PGID}
+  #     - TZ=${TIMEZONE}
+  #     - UMASK=${UMASK}
+  #     # qBittorrent web UI port inside container:
+  #     - WEBUI_PORT=8080
+  #   volumes:
+  #     - ${APPDATA_DIR}/qbittorrent:/config
+  #     - ${DOWNLOADS_DIR}:/downloads
+  #   ports:
+  #     - "8080:8080"     # WebUI
+  #     - "6881:6881"     # TCP torrent port
+  #     - "6881:6881/udp" # UDP torrent port
+  #   restart: unless-stopped
+  #   networks:
+  #     - plex_net
+
+  # ---------- Streaming server ----------
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TIMEZONE}
+      - JELLYFIN_PublishedServerUrl=http://${PI_IP}:8096
+    volumes:
+      - ${JELLYFIN_LIBRARY}:/config
+      - ${JELLYFIN_TV}:/data/tv
+      - ${JELLYFIN_MOVIES}:/data/movies
+    ports:
+      - "8096:8096"   # HTTP
+      # - "8920:8920" # HTTPS (only if you configure certs)
+    restart: unless-stopped
+    networks:
+      - plex_net
+
+  # ---------- SMB share for VLC ----------
+  # samba:
+  #   image: dperson/samba:latest
+  #   container_name: samba
+  #   environment:
+  #     # SMB user/pass
+  #     - USERID=${PUID}
+  #     - GROUPID=${PGID}
+  #     - TZ=${TIMEZONE}
+  #   # dperson/samba uses command args to define users/shares
+  #   # Notes:
+  #   # -u "user;pass" creates a samba user
+  #   # -s "name;/path;yes/no;read only;guest;users"
+  #   # Here we share /share/media and /share/downloads (downloads optional)
+  #   command: >
+  #     -p
+  #     -u "${SMB_USER};${SMB_PASS}"
+  #     -s "media;/share/media;yes;no;no;${SMB_USER}"
+  #     -s "downloads;/share/downloads;yes;no;no;${SMB_USER}"
+  #   volumes:
+  #     - ${MEDIA_ROOT}:/share/media
+  #     - ${DOWNLOADS_DIR}:/share/downloads
+  #     - ${APPDATA_DIR}/samba:/var/lib/samba
+  #   ports:
+  #     - "139:139"
+  #     - "445:445"
+  #   restart: unless-stopped
+  #   networks:
+  #     - plex_net
+
+networks:
+  plex_net:
+    driver: bridge

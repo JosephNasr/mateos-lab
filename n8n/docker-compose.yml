@@ -1,0 +1,30 @@
+services:
+  n8n:
+    container_name: n8n
+    image: n8nio/n8n:latest
+    restart: unless-stopped
+    user: "1000:1000"
+    environment:
+      - GENERIC_TIMEZONE=${TIMEZONE}
+      - N8N_EDITOR_BASE_URL=${N8N_PUBLIC_URL}
+      - WEBHOOK_URL=${N8N_WEBHOOKS_URL}
+      - N8N_HOST=${N8N_HOST}
+      - N8N_PROTOCOL=https
+      - N8N_PORT=5678
+      - N8N_PROXY_HOPS=1
+      - N8N_SECURE_COOKIE=true
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_MIGRATE_FS_STORAGE_PATH=true
+      - DB_SQLITE_POOL_SIZE=5
+      - DB_TYPE=sqlite
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks: [web]
+
+volumes:
+  n8n_data: {}
+
+networks:
+  web:
+    external: true

@@ -1,0 +1,31 @@
+# Ignore local environment files anywhere in this repo.
+.env
+**/.env
+.env.*
+**/.env.*
+!.env.example
+!**/.env.example
+
+# Paperless deployment-local env file.
+docker-compose.env
+**/docker-compose.env
+!docker-compose.env.example
+!**/docker-compose.env.example
+
+# Dependency installs and runtime/service data.
+**/node_modules/
+home_assistant/ha/config/.storage/
+home_assistant/ha/config/.cloud/
+home_assistant/ha/config/deps/
+home_assistant/ha/config/tts/
+home_assistant/ha/config/home-assistant*.log*
+home_assistant/ha/config/home-assistant_v2.db*
+home_assistant/ha/config/.ha_run.lock
+home_assistant/ha/config/.HA_VERSION
+home_assistant/ha/config/secrets.yaml
+home_assistant/ha/config/.storage/*adbkey*
+home_assistant/ha/config/.storage/*.pem
+home_assistant/ha/config/.storage/*.pub
+home_assistant/mosquitto/data/
+home_assistant/mosquitto/log/
+portainer/data/

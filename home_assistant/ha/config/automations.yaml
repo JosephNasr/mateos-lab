@@ -1,0 +1,15 @@
+- id: '1767562801807'
+  alias: Toggle Lounge Lights
+  description: ''
+  triggers:
+  - trigger: event
+    event_type: ''
+  conditions: []
+  actions:
+  - action: light.toggle
+    metadata: {}
+    target:
+      area_id: living_room
+    data:
+      brightness_pct: 10
+  mode: single

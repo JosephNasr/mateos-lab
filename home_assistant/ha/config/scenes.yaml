@@ -1,0 +1,140 @@
+- id: '1770516501674'
+  name: Lounge Overhead
+  entities:
+    light.sonoff_1001f4b942:
+      min_color_temp_kelvin: 2000
+      max_color_temp_kelvin: 6535
+      min_mireds: 153
+      max_mireds: 500
+      effect_list:
+      - bright
+      - goodNight
+      - read
+      - nightLight
+      - party
+      - leisure
+      - soft
+      - colorful
+      supported_color_modes:
+      - color_temp
+      - rgb
+      friendly_name: Balcony 1
+      supported_features: 36
+      state: unavailable
+    light.sonoff_1001f4b0d4:
+      min_color_temp_kelvin: 2000
+      max_color_temp_kelvin: 6535
+      min_mireds: 153
+      max_mireds: 500
+      effect_list:
+      - bright
+      - goodNight
+      - read
+      - nightLight
+      - party
+      - leisure
+      - soft
+      - colorful
+      supported_color_modes:
+      - color_temp
+      - rgb
+      friendly_name: Balcony 2
+      supported_features: 36
+      state: unavailable
+    light.sonoff_10021748f9:
+      min_color_temp_kelvin: 2000
+      max_color_temp_kelvin: 6535
+      min_mireds: 153
+      max_mireds: 500
+      effect_list:
+      - bright
+      - goodNight
+      - read
+      - nightLight
+      - party
+      - leisure
+      - soft
+      - colorful
+      supported_color_modes:
+      - color_temp
+      - rgb
+      friendly_name: Dining one
+      supported_features: 36
+      state: unavailable
+    light.sonoff_10021744f4:
+      min_color_temp_kelvin: 2000
+      max_color_temp_kelvin: 6535
+      min_mireds: 153
+      max_mireds: 500
+      effect_list:
+      - bright
+      - goodNight
+      - read
+      - nightLight
+      - party
+      - leisure
+      - soft
+      - colorful
+      supported_color_modes:
+      - color_temp
+      - rgb
+      friendly_name: Dining two
+      supported_features: 36
+      state: unavailable
+    light.sonoff_1002175011:
+      min_color_temp_kelvin: 2000
+      max_color_temp_kelvin: 6535
+      min_mireds: 153
+      max_mireds: 500
+      effect_list:
+      - bright
+      - goodNight
+      - read
+      - nightLight
+      - party
+      - leisure
+      - soft
+      - colorful
+      supported_color_modes:
+      - color_temp
+      - rgb
+      effect:
+      color_mode: color_temp
+      brightness: 24
+      color_temp_kelvin: 2000
+      color_temp: 500
+      hs_color:
+      - 30.601
+      - 94.547
+      rgb_color:
+      - 255
+      - 137
+      - 14
+      xy_color:
+      - 0.598
+      - 0.383
+      friendly_name: Kitchen one
+      supported_features: 36
+      state: 'on'
+    light.sonoff_1002174029:
+      min_color_temp_kelvin: 2000
+      max_color_temp_kelvin: 6535
+      min_mireds: 153
+      max_mireds: 500
+      effect_list:
+      - bright
+      - goodNight
+      - read
+      - nightLight
+      - party
+      - leisure
+      - soft
+      - colorful
+      supported_color_modes:
+      - color_temp
+      - rgb
+      friendly_name: Kitchen two
+      supported_features: 36
+      state: unavailable
+  icon: mdi:ceiling-light
+  metadata: {}

@@ -1,0 +1,5 @@
+AF:34:D4:AD:FC:C1:72:C4:
+  set_brightness_max:
+  get_brightness_max: 100
+  before_set_brightness_turn_on: false
+  config_offline_is_off: false

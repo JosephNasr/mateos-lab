@@ -1,0 +1,17 @@
+services:
+  portainer:
+    image: portainer/portainer-ce:lts
+    container_name: portainer
+    restart: unless-stopped
+    ports:
+      - "9443:9443"   # UI (HTTPS)
+      # - "8000:8000"   # agent/tunnel port
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/data
+    networks: [web]
+    
+networks:
+  web:
+    external: true
+

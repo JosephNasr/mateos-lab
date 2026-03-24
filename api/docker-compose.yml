@@ -1,0 +1,14 @@
+services:
+  api:
+    container_name: api
+    build: .
+    expose:
+      - "4211"
+    networks: [web]
+    environment:
+      - GENERIC_TIMEZONE=${TIMEZONE}
+    restart: unless-stopped
+
+networks:
+  web:
+    external: true

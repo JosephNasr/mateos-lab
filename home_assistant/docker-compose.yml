@@ -1,0 +1,95 @@
+# docker-compose.yml (Raspberry Pi 5 / Raspberry Pi OS)
+#
+# Goals:
+# - Maximum LAN discovery + access to devices on your network (mDNS/SSDP/UPnP/broadcast)
+# - Good baseline permissions for hardware/network integrations
+# - Optional local-first building blocks (MQTT now, Zigbee later)
+
+services:
+  homeassistant:
+    container_name: homeassistant
+    image: ghcr.io/home-assistant/home-assistant:stable
+    network_mode: host
+    privileged: true
+    restart: unless-stopped
+
+    environment:
+      - TZ=${TIMEZONE}
+      - PI_IP=${PI_IP}
+
+    volumes:
+      - ./ha/config:/config
+      - /etc/localtime:/etc/localtime:ro
+      - /run/dbus:/run/dbus:ro
+
+    # Optional (recommended): keep container logs from growing forever
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+
+  # Recommended even if you’re not using Zigbee yet:
+  # MQTT becomes useful for many “local-first” paths later (Zigbee2MQTT, ESPHome, Tasmota, etc.)
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001" # optional websockets
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+
+  # Optional (future): Zigbee2MQTT
+  # Enable when you buy a Zigbee coordinator USB dongle.
+  # zigbee2mqtt:
+  #   image: koenkk/zigbee2mqtt:latest
+  #   container_name: zigbee2mqtt
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - mosquitto
+  #   ports:
+  #     - "8080:8080"  # Zigbee2MQTT UI
+  #   volumes:
+  #     - ./zigbee2mqtt/data:/app/data
+  #     - /run/udev:/run/udev:ro
+  #   environment:
+  #     TZ: Asia/Beirut
+  #   devices:
+  #     # Replace this with your real device path from:
+  #     #   ls -l /dev/serial/by-id/
+  #     - /dev/serial/by-id/usb-XXXX_XXXX-if00-port0:/dev/ttyACM0
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
+
+
+  # Optional (future): Matter Server
+  # matter-server:
+  #   image: ghcr.io/home-assistant-libs/python-matter-server:stable
+  #   container_name: matter-server
+  #   restart: unless-stopped
+  #   network_mode: host
+  #   volumes:
+  #     - ./matter-server:/data
+  #     - /run/dbus:/run/dbus:ro
+  #   environment:
+  #     TZ: Asia/Beirut
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
