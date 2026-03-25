@@ -3,7 +3,8 @@ import axios from "axios";
 import cors from "cors";
 import { DateTime } from "luxon";
 import { getGoldPrice, getAccount, getAccountTransactions, postTransaction, getExchangeRate, getBeirutWeatherData } from "./requests.js";
-import { getLastAutomatedTxDate, getLastTxDate, getTotalGoldWeight, getRoiData, buildRoiTransaction } from "./endpoints/golden-update.js";
+import { getLastAutomatedTxDate, getLastTxDate, getTotalGoldWeight, getRoiData, buildRoiTransaction, getGoldPurchaseTransactions } from "./endpoints/golden-update.js";
+import { calculateGoldPortfolioAnalytics } from "./endpoints/goldPortfolioAnalyticsCalculator.js";
 import { authorize, tryAgainLater } from "./utils.js";
 import { deconstructSms } from "./sms/utils.js";
 import { buildDailyWeatherMessage } from "./endpoints/daily-weather.js";
@@ -13,6 +14,22 @@ import { buildDailyWeatherMessage } from "./endpoints/daily-weather.js";
 
 const app = express();
 const PORT = process.env.PORT || 4211;
+
+function getGoldGramPrices(goldData) {
+    const ouncePrice = Number(goldData?.price ?? goldData?.bid ?? goldData?.ask);
+    const ounceBidPrice = Number(goldData?.bid ?? ouncePrice);
+    const ounceAskPrice = Number(goldData?.ask ?? ouncePrice);
+
+    if (!Number.isFinite(ouncePrice) || !Number.isFinite(ounceBidPrice) || !Number.isFinite(ounceAskPrice)) {
+        throw new Error("Gold price payload is missing bid/ask values");
+    }
+
+    return {
+        gramPrice: (ouncePrice / 31.1035).toFixed(2),
+        gramBidPrice: Number((ounceBidPrice / 31.1035).toFixed(2)),
+        gramAskPrice: Number((ounceAskPrice / 31.1035).toFixed(2)),
+    };
+}
 
 app.use(cors());
 app.use(json());
@@ -56,7 +73,7 @@ app.get("/ynab/golden-update", async (req, res) => {
             getAccountResponse(accountRequestN),
             getTransactionsResponse(transactionsRequestN),
         ]).then(([gold, accountJ, transactionsJ, accountN, transactionsN]) => {
-            const gramPrice = (gold.data.price / 31.1035).toFixed(2);
+            const { gramPrice } = getGoldGramPrices(gold.data);
 
             const balanceJ = accountJ.data.data.account.balance / 1000;
             const balanceN = accountN.data.data.account.balance / 1000;
@@ -172,14 +189,16 @@ app.get("/ynab/golden-update-single", async (req, res) => {
             getAccountResponse(accountRequest),
             getTransactionsResponse(transactionsRequest),
         ]).then(([gold, account, transactions]) => {
-            const gramPrice = (gold.data.price / 31.1035).toFixed(2);
+            const { gramPrice, gramBidPrice, gramAskPrice } = getGoldGramPrices(gold.data);
             const balance = account.data.data.account.balance / 1000;
             const goldTransactions = transactions.data.data.transactions;
+            const purchaseTransactions = getGoldPurchaseTransactions(goldTransactions);
 
             const lastAutomatedTxDate = getLastAutomatedTxDate(goldTransactions);
             const lastTxDate = getLastTxDate(goldTransactions);
             const currentGoldWeight = getTotalGoldWeight(goldTransactions);
             const roiData = getRoiData(gramPrice, balance, lastTxDate, currentGoldWeight);
+            const analytics = calculateGoldPortfolioAnalytics(purchaseTransactions, gramBidPrice, gramAskPrice);
 
             return res.json({
                 gramPrice: gramPrice,
@@ -190,6 +209,7 @@ app.get("/ynab/golden-update-single", async (req, res) => {
                     roiData.displayText,
                 ]
                     .join("\n\n"),
+                analytics,
             });
         });
     } catch (error) {

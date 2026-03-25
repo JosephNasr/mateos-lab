@@ -1,5 +1,7 @@
 import { DateTime } from "luxon";
 
+const GOLD_MEMO_PATTERN = /([\d.]+)g \* ([\d.]+)/;
+
 function amountWithCommas(amount) {
     return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
@@ -22,10 +24,35 @@ export function getTotalGoldWeight(goldTransactions) {
         .filter(tx => tx.amount > 0 && tx.memo)
         .filter(tx => !tx.memo.startsWith("Automated"))
         .map(tx => {
-            const match = tx.memo.match(/([\d\.]+g \* \d+\.\d+)/g);
-            return match ? parseFloat(match[0].split('g')[0]) : 0;
+            const match = tx.memo.match(GOLD_MEMO_PATTERN);
+            return match ? parseFloat(match[1]) : 0;
         })
         .reduce((acc, weight) => acc + weight, 0);
+}
+
+export function getGoldPurchaseTransactions(goldTransactions) {
+    return goldTransactions
+        .filter(tx => tx.amount > 0 && tx.memo)
+        .filter(tx => !tx.memo.startsWith("Automated"))
+        .map(tx => {
+            const match = tx.memo.match(GOLD_MEMO_PATTERN);
+
+            if (!match) return null;
+
+            const quantityInGrams = Number.parseFloat(match[1]);
+            const pricePerGram = Number.parseFloat(match[2]);
+
+            if (!Number.isFinite(quantityInGrams) || !Number.isFinite(pricePerGram) || quantityInGrams <= 0) {
+                return null;
+            }
+
+            return {
+                quantityInGrams,
+                pricePerGram,
+                purchaseDate: tx.date,
+            };
+        })
+        .filter(Boolean);
 }
 
 export function buildRoiTransaction(account, currentROI, goldPrice) {
