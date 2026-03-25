@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getGoldPurchaseTransactions, getTotalGoldWeight } from "../src/endpoints/golden-update.js";
+import { buildGoldenUpdatePayload, getGoldGramPrices, getGoldPurchaseTransactions, getTotalGoldWeight } from "../src/endpoints/golden-update.js";
 import { calculateGoldPortfolioAnalytics } from "../src/endpoints/goldPortfolioAnalyticsCalculator.js";
 
 test("getGoldPurchaseTransactions keeps only valid manual purchases and sums their weight", () => {
@@ -76,4 +76,43 @@ test("calculateGoldPortfolioAnalytics returns a chronological weighted breakdown
     ]) {
         assert.ok(field in analytics);
     }
+});
+
+test("getGoldGramPrices converts ounce prices to gram prices", () => {
+    const prices = getGoldGramPrices({
+        bid: 2799.12,
+        ask: 2810.45,
+    });
+
+    assert.deepEqual(prices, {
+        gramPrice: "89.99",
+        gramBidPrice: 89.99,
+        gramAskPrice: 90.36,
+    });
+});
+
+test("buildGoldenUpdatePayload returns the full single-account response payload", () => {
+    const result = buildGoldenUpdatePayload({
+        balance: 270,
+        goldTransactions: [
+            { amount: 120000, memo: "2g * 60", date: "2024-01-03" },
+            { amount: 150000, memo: "3g * 50", date: "2024-02-10" },
+            { amount: 170000, memo: "Automated: 1g * 89", date: "2024-03-01" },
+        ],
+        gramPrice: 90,
+        gramBidPrice: 88,
+        gramAskPrice: 89,
+    });
+
+    assert.equal(result.gramPrice, 90);
+    assert.equal(result.lastAutomatedTxDate, "2024-03-01");
+    assert.equal(result.roi, 180000);
+    assert.match(result.displayText, /^1g Price: \$90\n\n\+\$180\.00/);
+    assert.equal(result.analytics.totalQuantity, 5);
+    assert.equal(result.analytics.totalInvested, 270);
+    assert.equal(result.analytics.currentBidPrice, 88);
+    assert.equal(result.analytics.currentAskPrice, 89);
+    assert.equal(result.analytics.currentValue, 440);
+    assert.equal(result.analytics.profit, 170);
+    assert.equal(result.analytics.distanceToBreakEven, 34);
 });

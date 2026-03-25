@@ -1,4 +1,5 @@
 import { DateTime } from "luxon";
+import { calculateGoldPortfolioAnalytics } from "./goldPortfolioAnalyticsCalculator.js";
 
 const GOLD_MEMO_PATTERN = /([\d.]+)g \* ([\d.]+)/;
 
@@ -68,6 +69,46 @@ export function getGoldPurchaseTransactions(goldTransactions) {
             };
         })
         .filter(Boolean);
+}
+
+export function getGoldGramPrices(goldData) {
+    const ouncePrice = Number(goldData?.price ?? goldData?.bid ?? goldData?.ask);
+    const ounceBidPrice = Number(goldData?.bid ?? ouncePrice);
+    const ounceAskPrice = Number(goldData?.ask ?? ouncePrice);
+
+    if (!Number.isFinite(ouncePrice) || !Number.isFinite(ounceBidPrice) || !Number.isFinite(ounceAskPrice)) {
+        throw new Error("Gold price payload is missing bid/ask values");
+    }
+
+    return {
+        gramPrice: (ouncePrice / 31.1035).toFixed(2),
+        gramBidPrice: Number((ounceBidPrice / 31.1035).toFixed(2)),
+        gramAskPrice: Number((ounceAskPrice / 31.1035).toFixed(2)),
+    };
+}
+
+function buildGoldenUpdateDisplayText(gramPrice, roiDisplayText) {
+    return [
+        `1g Price: $${gramPrice}`,
+        roiDisplayText,
+    ].join("\n\n");
+}
+
+export function buildGoldenUpdatePayload({ balance, goldTransactions, gramPrice, gramBidPrice, gramAskPrice }) {
+    const purchaseTransactions = getGoldPurchaseTransactions(goldTransactions);
+    const lastAutomatedTxDate = getLastAutomatedTxDate(goldTransactions);
+    const lastTxDate = getLastTxDate(goldTransactions);
+    const currentGoldWeight = getTotalGoldWeight(goldTransactions);
+    const roiData = getRoiData(gramPrice, balance, lastTxDate, currentGoldWeight);
+    const analytics = calculateGoldPortfolioAnalytics(purchaseTransactions, gramBidPrice, gramAskPrice);
+
+    return {
+        gramPrice,
+        lastAutomatedTxDate,
+        roi: roiData.roi,
+        displayText: buildGoldenUpdateDisplayText(gramPrice, roiData.displayText),
+        analytics,
+    };
 }
 
 export function buildRoiTransaction(account, currentROI, goldPrice) {
