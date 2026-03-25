@@ -1,6 +1,6 @@
 # Homelab Containers
 
-This repository stores the Docker Compose projects that power the homelab. The root `makefile` is the orchestration layer: it loads `/home/zeezoux/containers/.env`, assigns each stack a Compose project name based on its directory, and runs the same lifecycle command across every stack.
+This repository stores the Docker Compose projects that power the homelab. The root `makefile` is the orchestration layer: it loads `/home/zeezoux/containers/.env`, assigns each stack a Compose project name based on its directory, and can run the same lifecycle command across every stack or a single stack via `STACK=<name>`.
 
 ## Stack Overview
 
@@ -36,30 +36,40 @@ docker network create web
 
 Run these commands from `/home/zeezoux/containers`:
 
+Plain `make` still defaults to `make up`.
+
 | Command | What it does |
 | --- | --- |
+| `make help` | Shows the available targets, stacks, and a few examples. |
+| `make stacks` | Prints the supported stack names. |
 | `make up` | Starts every stack with `up -d --build --remove-orphans`. This rebuilds local images such as `api`, but it does not pull newer remote images first. |
-| `make stop` | Stops every stack without removing containers. |
-| `make down` | Removes every stack's containers and networks created by Compose. |
-| `make restart` | Stops every stack, then starts them again with `up -d --build --remove-orphans`. |
-| `make recreate` | Force-recreates every stack with `up -d --force-recreate`. Useful when you want fresh containers without changing the compose files. |
-| `make ps` | Shows container status for each stack in sequence. |
+| `make up STACK=api` | Starts only the `api` stack with the same flags. |
+| `make pull STACK=n8n` | Pulls newer upstream images for one stack before you restart or bring it back up. Omit `STACK` to pull every stack in sequence. |
+| `make build STACK=api` | Builds local images for one stack without starting it. |
+| `make stop` | Stops every stack without removing containers. Add `STACK=<name>` to scope it. |
+| `make down STACK=api` | Removes one stack's containers and Compose-managed networks. Omit `STACK` to apply it to every stack. |
+| `make restart STACK=api` | Stops then starts one stack again with `up -d --build --remove-orphans`. |
+| `make recreate STACK=api` | Force-recreates one stack with `up -d --force-recreate`. Useful when you want fresh containers without changing the compose files. |
+| `make ps` | Shows container status for every stack in sequence. Add `STACK=<name>` to focus on one stack. |
+| `make logs STACK=api` | Streams logs for one stack. Optional: `SERVICE=api` and `TAIL=200`. |
+| `make config STACK=api` | Renders the merged Compose config for inspection. |
 
-Important detail: the current `makefile` has no `pull` target. `make up` and `make restart` rebuild local images, but they do not fetch newer versions of remote images such as `n8n`, `jellyfin`, `paperless`, or `portainer`.
+`STACK` must match one of: `api`, `cloudflared`, `home_assistant`, `jellyfin`, `n8n`, `paperless`, `portainer`.
 
 ## When To Use `make` vs Direct Compose Commands
 
 Use the root `makefile` when:
 
 - you want to reconcile the whole homelab in one command
-- you changed the local `api` code and do not mind restarting everything
-- you want a consistent all-stacks stop/start workflow
+- you want a consistent command format for either one stack or all stacks
+- you changed the local `api` code and want shorthand like `make up STACK=api`
+- you need to pull a newer upstream image for one stack with `make pull STACK=<name>`
 
 Use direct `docker compose` commands when:
 
-- you only changed one stack
-- you want to avoid restarting unrelated services
-- you need to pull a newer upstream image for one stack
+- you need a one-off Compose flag that is not wrapped by the root `makefile`
+- you are debugging an unusual Compose behavior and want the raw command line
+- you want to experiment without changing the shared shortcuts
 
 Direct stack command template:
 
@@ -74,23 +84,14 @@ docker compose \
 Examples:
 
 ```bash
-docker compose \
-  --env-file /home/zeezoux/containers/.env \
-  -p api \
-  -f /home/zeezoux/containers/api/docker-compose.yml \
-  up -d --build
+make up STACK=api
 ```
 
 ```bash
-docker compose \
-  --env-file /home/zeezoux/containers/.env \
-  -p n8n \
-  -f /home/zeezoux/containers/n8n/docker-compose.yml \
-  pull
+make pull STACK=n8n
+make up STACK=n8n
+```
 
-docker compose \
-  --env-file /home/zeezoux/containers/.env \
-  -p n8n \
-  -f /home/zeezoux/containers/n8n/docker-compose.yml \
-  up -d
+```bash
+make logs STACK=api SERVICE=api TAIL=200
 ```
