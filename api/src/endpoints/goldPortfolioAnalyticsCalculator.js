@@ -42,17 +42,42 @@ function normalizePrice(value, name) {
     return roundCurrency(normalizedValue);
 }
 
+function normalizePurchaseTransaction(transaction) {
+    const quantityInGrams = Number(transaction?.quantityInGrams);
+    const pricePerGram = Number(transaction?.pricePerGram);
+    const purchaseDate = transaction?.purchaseDate;
+
+    if (!Number.isFinite(quantityInGrams) || !Number.isFinite(pricePerGram) || quantityInGrams <= 0) {
+        return null;
+    }
+
+    if (typeof purchaseDate !== "string" || purchaseDate.length === 0) {
+        return null;
+    }
+
+    return {
+        purchaseDate,
+        quantityInGrams,
+        pricePerGram,
+    };
+}
+
+function sortPurchaseBreakdown(transactions) {
+    return [...transactions].sort((left, right) => left.purchaseDate.localeCompare(right.purchaseDate));
+}
+
 export function calculateGoldPortfolioAnalytics(transactions, bidPrice, askPrice) {
     const normalizedBidPrice = normalizePrice(bidPrice, "bidPrice");
     const normalizedAskPrice = normalizePrice(askPrice, "askPrice");
+    const purchaseBreakdown = sortPurchaseBreakdown(
+        (transactions || [])
+            .map(normalizePurchaseTransaction)
+            .filter(Boolean)
+    );
 
-    const aggregates = (transactions || []).reduce((acc, transaction) => {
+    const aggregates = purchaseBreakdown.reduce((acc, transaction) => {
         const quantityInGrams = Number(transaction?.quantityInGrams);
         const pricePerGram = Number(transaction?.pricePerGram);
-
-        if (!Number.isFinite(quantityInGrams) || !Number.isFinite(pricePerGram) || quantityInGrams <= 0) {
-            return acc;
-        }
 
         return {
             totalQuantityScaled: acc.totalQuantityScaled + toScaledInteger(quantityInGrams, 1000),
@@ -75,6 +100,7 @@ export function calculateGoldPortfolioAnalytics(transactions, bidPrice, askPrice
     const distanceToBreakEven = roundCurrency(normalizedBidPrice - averageCost);
 
     return {
+        purchaseBreakdown,
         totalQuantity,
         totalInvested,
         averageCost,

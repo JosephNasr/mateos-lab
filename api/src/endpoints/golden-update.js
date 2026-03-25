@@ -6,6 +6,34 @@ function amountWithCommas(amount) {
     return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
+function parseGoldPurchaseMemo(memo) {
+    if (typeof memo !== "string") {
+        return null;
+    }
+
+    const match = memo.match(GOLD_MEMO_PATTERN);
+
+    if (!match) {
+        return null;
+    }
+
+    const quantityInGrams = Number.parseFloat(match[1]);
+    const pricePerGram = Number.parseFloat(match[2]);
+
+    if (!Number.isFinite(quantityInGrams) || !Number.isFinite(pricePerGram) || quantityInGrams <= 0) {
+        return null;
+    }
+
+    return {
+        quantityInGrams,
+        pricePerGram,
+    };
+}
+
+function isManualGoldPurchaseTransaction(tx) {
+    return tx.amount > 0 && typeof tx.memo === "string" && !tx.memo.startsWith("Automated");
+}
+
 export function getLastTxDate(goldTransactions) {
     return goldTransactions
         .map(tx => new Date(tx.date))
@@ -14,41 +42,28 @@ export function getLastTxDate(goldTransactions) {
 
 export function getLastAutomatedTxDate(goldTransactions) {
     return goldTransactions
-        .filter(tx => tx.memo.startsWith("Automated"))
+        .filter(tx => typeof tx.memo === "string" && tx.memo.startsWith("Automated"))
         .map(tx => new Date(tx.date))
         .sort((a, b) => b - a)[0]?.toISOString().split('T')[0] || "Never";
 }
 
 export function getTotalGoldWeight(goldTransactions) {
-    return goldTransactions
-        .filter(tx => tx.amount > 0 && tx.memo)
-        .filter(tx => !tx.memo.startsWith("Automated"))
-        .map(tx => {
-            const match = tx.memo.match(GOLD_MEMO_PATTERN);
-            return match ? parseFloat(match[1]) : 0;
-        })
-        .reduce((acc, weight) => acc + weight, 0);
+    return getGoldPurchaseTransactions(goldTransactions)
+        .reduce((acc, transaction) => acc + transaction.quantityInGrams, 0);
 }
 
 export function getGoldPurchaseTransactions(goldTransactions) {
-    return goldTransactions
-        .filter(tx => tx.amount > 0 && tx.memo)
-        .filter(tx => !tx.memo.startsWith("Automated"))
+    return (goldTransactions || [])
+        .filter(isManualGoldPurchaseTransaction)
         .map(tx => {
-            const match = tx.memo.match(GOLD_MEMO_PATTERN);
+            const purchaseDetails = parseGoldPurchaseMemo(tx.memo);
 
-            if (!match) return null;
-
-            const quantityInGrams = Number.parseFloat(match[1]);
-            const pricePerGram = Number.parseFloat(match[2]);
-
-            if (!Number.isFinite(quantityInGrams) || !Number.isFinite(pricePerGram) || quantityInGrams <= 0) {
+            if (!purchaseDetails) {
                 return null;
             }
 
             return {
-                quantityInGrams,
-                pricePerGram,
+                ...purchaseDetails,
                 purchaseDate: tx.date,
             };
         })
