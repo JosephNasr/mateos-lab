@@ -7,6 +7,22 @@ function amountWithCommas(amount) {
     return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
+function isPlainObject(value) {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isValidNumericValue(value) {
+    if (typeof value === "number") {
+        return Number.isFinite(value);
+    }
+
+    if (typeof value === "string") {
+        return value.trim() !== "" && Number.isFinite(Number(value));
+    }
+
+    return false;
+}
+
 function parseGoldPurchaseMemo(memo) {
     if (typeof memo !== "string") {
         return null;
@@ -87,13 +103,6 @@ export function getGoldGramPrices(goldData) {
     };
 }
 
-function buildGoldenUpdateDisplayText(gramPrice, roiDisplayText) {
-    return [
-        `1g Price: $${gramPrice}`,
-        roiDisplayText,
-    ].join("\n\n");
-}
-
 export function buildGoldenUpdatePayload({ balance, goldTransactions, gramPrice, gramBidPrice, gramAskPrice }) {
     const purchaseTransactions = getGoldPurchaseTransactions(goldTransactions);
     const lastAutomatedTxDate = getLastAutomatedTxDate(goldTransactions);
@@ -106,8 +115,55 @@ export function buildGoldenUpdatePayload({ balance, goldTransactions, gramPrice,
         gramPrice,
         lastAutomatedTxDate,
         roi: roiData.roi,
-        displayText: buildGoldenUpdateDisplayText(gramPrice, roiData.displayText),
+        displayText: roiData.displayText,
         analytics,
+    };
+}
+
+export function parseGoldenUpdateSinglePostPayload(payload) {
+    if (!isPlainObject(payload) || "j" in payload || "n" in payload) {
+        return null;
+    }
+
+    const { gramPrice, lastAutomatedTxDate, roi } = payload;
+
+    if (!isValidNumericValue(gramPrice) || typeof lastAutomatedTxDate !== "string" || lastAutomatedTxDate.length === 0) {
+        return null;
+    }
+
+    if (typeof roi !== "number" || !Number.isFinite(roi)) {
+        return null;
+    }
+
+    return {
+        gramPrice,
+        lastAutomatedTxDate,
+        roi,
+    };
+}
+
+export function parseGoldenUpdateDualPostPayload(payload) {
+    if (!isPlainObject(payload)) {
+        return null;
+    }
+
+    const keys = Object.keys(payload);
+
+    if (keys.length !== 2 || !keys.includes("j") || !keys.includes("n")) {
+        return null;
+    }
+
+    const j = parseGoldenUpdateSinglePostPayload(payload.j);
+    const n = parseGoldenUpdateSinglePostPayload(payload.n);
+
+    if (!j || !n || Number(j.gramPrice) !== Number(n.gramPrice)) {
+        return null;
+    }
+
+    return {
+        j,
+        n,
+        gramPrice: j.gramPrice,
     };
 }
 
@@ -132,6 +188,8 @@ export function getRoiData(gramPrice, balance, lastTxDate, currentGoldWeight) {
         roi: Math.floor(currentROI * 1000),
         lastUpdated: new Date(lastTxDate).toDateString(),
         displayText: `${roiSign}$${amountWithCommas(Math.abs(currentROI).toFixed(2))}
+
+1g Price: $${gramPrice}
 Total Weight: ${currentGoldWeight}g
 Last Balance: $${amountWithCommas(balance)}
 New Balance: $${amountWithCommas((balance + currentROI).toFixed(2))}`,

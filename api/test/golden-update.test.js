@@ -1,7 +1,34 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildGoldenUpdatePayload, getGoldGramPrices, getGoldPurchaseTransactions, getTotalGoldWeight } from "../src/endpoints/golden-update.js";
+import {
+    buildGoldenUpdatePayload,
+    getGoldGramPrices,
+    getGoldPurchaseTransactions,
+    getTotalGoldWeight,
+    parseGoldenUpdateDualPostPayload,
+    parseGoldenUpdateSinglePostPayload,
+} from "../src/endpoints/golden-update.js";
 import { calculateGoldPortfolioAnalytics } from "../src/endpoints/goldPortfolioAnalyticsCalculator.js";
+
+function createSinglePostPayload(overrides = {}) {
+    return {
+        gramPrice: "89.99",
+        lastAutomatedTxDate: "2024-03-01",
+        roi: 180000,
+        ...overrides,
+    };
+}
+
+function createDualPostPayload(overrides = {}) {
+    return {
+        j: createSinglePostPayload(),
+        n: createSinglePostPayload({
+            lastAutomatedTxDate: "Never",
+            roi: 120000,
+        }),
+        ...overrides,
+    };
+}
 
 test("getGoldPurchaseTransactions keeps only valid manual purchases and sums their weight", () => {
     const transactions = [
@@ -115,4 +142,120 @@ test("buildGoldenUpdatePayload returns the full single-account response payload"
     assert.equal(result.analytics.currentValue, 440);
     assert.equal(result.analytics.profit, 170);
     assert.equal(result.analytics.distanceToBreakEven, 34);
+});
+
+test("parseGoldenUpdateSinglePostPayload accepts the core fields by themselves", () => {
+    assert.deepEqual(
+        parseGoldenUpdateSinglePostPayload(createSinglePostPayload()),
+        createSinglePostPayload()
+    );
+});
+
+test("parseGoldenUpdateSinglePostPayload ignores displayText and analytics", () => {
+    assert.deepEqual(
+        parseGoldenUpdateSinglePostPayload(createSinglePostPayload({
+            displayText: "ignored",
+            analytics: { totalQuantity: 5 },
+        })),
+        createSinglePostPayload()
+    );
+});
+
+test("parseGoldenUpdateSinglePostPayload rejects invalid single-account payloads", () => {
+    assert.equal(
+        parseGoldenUpdateSinglePostPayload({
+            gramPrice: "89.99",
+            roi: 180000,
+        }),
+        null
+    );
+
+    assert.equal(
+        parseGoldenUpdateSinglePostPayload({
+            gramPrice: "89.99",
+            lastAutomatedTxDate: "2024-03-01",
+        }),
+        null
+    );
+
+    assert.equal(
+        parseGoldenUpdateSinglePostPayload(createSinglePostPayload({
+            j: createSinglePostPayload(),
+        })),
+        null
+    );
+});
+
+test("parseGoldenUpdateDualPostPayload accepts the nested dual-account shape", () => {
+    assert.deepEqual(
+        parseGoldenUpdateDualPostPayload(createDualPostPayload({
+            j: createSinglePostPayload({
+                displayText: "ignored",
+                analytics: { totalQuantity: 5 },
+            }),
+            n: createSinglePostPayload({
+                lastAutomatedTxDate: "Never",
+                roi: 120000,
+                displayText: "ignored too",
+                analytics: { totalQuantity: 3 },
+            }),
+        })),
+        {
+            j: createSinglePostPayload(),
+            n: createSinglePostPayload({
+                lastAutomatedTxDate: "Never",
+                roi: 120000,
+            }),
+            gramPrice: "89.99",
+        }
+    );
+});
+
+test("parseGoldenUpdateDualPostPayload rejects flat, mixed, and malformed payloads", () => {
+    assert.equal(
+        parseGoldenUpdateDualPostPayload({
+            gramPrice: "89.99",
+            lastAutomatedTxDateJ: "2024-03-01",
+            roiJ: 180000,
+            lastAutomatedTxDateN: "Never",
+            roiN: 120000,
+        }),
+        null
+    );
+
+    assert.equal(
+        parseGoldenUpdateDualPostPayload({
+            ...createDualPostPayload(),
+            gramPrice: "89.99",
+        }),
+        null
+    );
+
+    assert.equal(
+        parseGoldenUpdateDualPostPayload({
+            j: createSinglePostPayload(),
+        }),
+        null
+    );
+
+    assert.equal(
+        parseGoldenUpdateDualPostPayload(createDualPostPayload({
+            n: createSinglePostPayload({
+                gramPrice: "90.50",
+                lastAutomatedTxDate: "Never",
+                roi: 120000,
+            }),
+        })),
+        null
+    );
+
+    assert.equal(
+        parseGoldenUpdateDualPostPayload(createDualPostPayload({
+            n: {
+                gramPrice: "89.99",
+                roi: 120000,
+            },
+        })),
+        null
+    );
 });

@@ -3,7 +3,13 @@ import axios from "axios";
 import cors from "cors";
 import { DateTime } from "luxon";
 import { getGoldPrice, getAccount, getAccountTransactions, postTransaction, getExchangeRate, getBeirutWeatherData } from "./requests.js";
-import { buildGoldenUpdatePayload, buildRoiTransaction, getGoldGramPrices } from "./endpoints/golden-update.js";
+import {
+    buildGoldenUpdatePayload,
+    buildRoiTransaction,
+    getGoldGramPrices,
+    parseGoldenUpdateDualPostPayload,
+    parseGoldenUpdateSinglePostPayload,
+} from "./endpoints/golden-update.js";
 import { authorize, tryAgainLater } from "./utils.js";
 import { deconstructSms } from "./sms/utils.js";
 import { buildDailyWeatherMessage } from "./endpoints/daily-weather.js";
@@ -14,12 +20,8 @@ import { buildDailyWeatherMessage } from "./endpoints/daily-weather.js";
 const app = express();
 const PORT = process.env.PORT || 4211;
 
-function getDualGoldenUpdatePostPayload(body, key, suffix) {
-    return {
-        gramPrice: body?.[key]?.gramPrice ?? body?.gramPrice,
-        lastAutomatedTxDate: body?.[key]?.lastAutomatedTxDate ?? body?.[`lastAutomatedTxDate${suffix}`],
-        roi: body?.[key]?.roi ?? body?.[`roi${suffix}`],
-    };
+function invalidGoldenUpdatePayload(res) {
+    return res.status(400).json({ error: "Invalid golden update payload" });
 }
 
 app.use(cors());
@@ -89,10 +91,20 @@ app.get("/ynab/golden-update", async (req, res) => {
 });
 
 app.post("/ynab/golden-update", async (req, res) => {
-    const { headers, budget, accountJ, accountN } = authorize(req, res, "budget", "account-j", "account-n");
-    const goldenUpdateJ = getDualGoldenUpdatePostPayload(req.body, "j", "J");
-    const goldenUpdateN = getDualGoldenUpdatePostPayload(req.body, "n", "N");
-    const gramPrice = goldenUpdateJ.gramPrice ?? goldenUpdateN.gramPrice;
+    const auth = authorize(req, res, "budget", "account-j", "account-n");
+
+    if (!auth?.headers) {
+        return auth;
+    }
+
+    const { headers, budget, accountJ, accountN } = auth;
+    const goldenUpdatePayload = parseGoldenUpdateDualPostPayload(req.body);
+
+    if (!goldenUpdatePayload) {
+        return invalidGoldenUpdatePayload(res);
+    }
+
+    const { j: goldenUpdateJ, n: goldenUpdateN, gramPrice } = goldenUpdatePayload;
 
     const dateWorksJ = !goldenUpdateJ.lastAutomatedTxDate || goldenUpdateJ.lastAutomatedTxDate != DateTime.now().toISODate();
     const dateWorksN = !goldenUpdateN.lastAutomatedTxDate || goldenUpdateN.lastAutomatedTxDate != DateTime.now().toISODate();
@@ -177,8 +189,20 @@ app.get("/ynab/golden-update-single", async (req, res) => {
 });
 
 app.post("/ynab/golden-update-single", async (req, res) => {
-    const { headers, budget, account } = authorize(req, res, "budget", "account");
-    const { gramPrice, lastAutomatedTxDate, roi } = req.body;
+    const auth = authorize(req, res, "budget", "account");
+
+    if (!auth?.headers) {
+        return auth;
+    }
+
+    const { headers, budget, account } = auth;
+    const goldenUpdatePayload = parseGoldenUpdateSinglePostPayload(req.body);
+
+    if (!goldenUpdatePayload) {
+        return invalidGoldenUpdatePayload(res);
+    }
+
+    const { gramPrice, lastAutomatedTxDate, roi } = goldenUpdatePayload;
 
     const dateWorks = !lastAutomatedTxDate || lastAutomatedTxDate != DateTime.now().toISODate();
     const insignificantRoi = roi < 10 && roi > -10;
