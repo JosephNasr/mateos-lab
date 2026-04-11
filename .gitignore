@@ -29,3 +29,6 @@ home_assistant/ha/config/.storage/*.pub
 home_assistant/mosquitto/data/
 home_assistant/mosquitto/log/
 portainer/data/
+
+# Agents
+.codex
