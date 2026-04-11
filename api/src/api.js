@@ -85,30 +85,22 @@ app.post("/ynab/gold-stats-update", async (req, res) => {
             getTransactionsResponse(transactionsRequestN),
         ]);
         const { gramPrice, gramBidPrice, gramAskPrice } = getGoldGramPrices(gold.data);
-        const goldenUpdateJ = buildGoldenUpdatePayload({
-            balance: accountJResponse.data.data.account.balance / 1000,
-            goldTransactions: byPerson.j,
-            gramPrice,
-            gramBidPrice,
-            gramAskPrice,
-        });
-        const goldenUpdateN = buildGoldenUpdatePayload({
-            balance: accountNResponse.data.data.account.balance / 1000,
-            goldTransactions: byPerson.n,
-            gramPrice,
-            gramBidPrice,
-            gramAskPrice,
-        });
 
         return res.json({
-            j: {
-                ...goldenUpdateJ,
-                lastAutomatedTxDate: getLastAutomatedTxDate(transactionsJ.data.data.transactions),
-            },
-            n: {
-                ...goldenUpdateN,
-                lastAutomatedTxDate: getLastAutomatedTxDate(transactionsN.data.data.transactions),
-            },
+            j: buildGoldenUpdatePayload({
+                balance: accountJResponse.data.data.account.balance / 1000,
+                goldTransactions: byPerson.j,
+                gramPrice,
+                gramBidPrice,
+                gramAskPrice,
+            }),
+            n: buildGoldenUpdatePayload({
+                balance: accountNResponse.data.data.account.balance / 1000,
+                goldTransactions: byPerson.n,
+                gramPrice,
+                gramBidPrice,
+                gramAskPrice,
+            }),
         });
     } catch (error) {
         return tryAgainLater(res, error);

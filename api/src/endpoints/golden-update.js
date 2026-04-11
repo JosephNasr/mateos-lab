@@ -51,12 +51,6 @@ function isManualGoldPurchaseTransaction(tx) {
     return tx.amount > 0 && typeof tx.memo === "string" && !tx.memo.startsWith("Automated");
 }
 
-export function getLastTxDate(goldTransactions) {
-    return (goldTransactions || [])
-        .map(tx => new Date(tx.date))
-        .sort((a, b) => b - a)[0]?.toISOString().split('T')[0] || DateTime.now().toISODate();
-}
-
 export function getLastAutomatedTxDate(goldTransactions) {
     return goldTransactions
         .filter(tx => typeof tx.memo === "string" && tx.memo.startsWith("Automated"))
@@ -107,9 +101,8 @@ export function getGoldGramPrices(goldData) {
 export function buildGoldenUpdatePayload({ balance, goldTransactions, gramPrice, gramBidPrice, gramAskPrice }) {
     const purchaseTransactions = getGoldPurchaseTransactions(goldTransactions);
     const lastAutomatedTxDate = getLastAutomatedTxDate(goldTransactions);
-    const lastTxDate = getLastTxDate(goldTransactions);
     const currentGoldWeight = getTotalGoldWeight(goldTransactions);
-    const roiData = getRoiData(gramPrice, balance, lastTxDate, currentGoldWeight);
+    const roiData = getRoiData(gramPrice, balance, currentGoldWeight);
     const analytics = calculateGoldPortfolioAnalytics(purchaseTransactions, gramBidPrice, gramAskPrice);
 
     return {
@@ -180,19 +173,14 @@ export function buildRoiTransaction(account, currentROI, goldPrice) {
     };
 }
 
-export function getRoiData(gramPrice, balance, lastTxDate, currentGoldWeight) {
+export function getRoiData(gramPrice, balance, currentGoldWeight) {
     const currentROI = (currentGoldWeight * gramPrice) - balance;
     const roiSign = currentROI < 0 ? "-" : "+";
 
     return {
         roi: Math.floor(currentROI * 1000),
-        lastUpdated: new Date(lastTxDate).toDateString(),
-        headline: {
-            roiDisplay: roiSign + '$' + amountWithCommas(Math.abs(currentROI).toFixed(2)),
-            gramPrice,
-            currentGoldWeight,
-            lastBalance: amountWithCommas(balance),
-            newBalance: amountWithCommas((balance + currentROI).toFixed(2)),
-        }
+        roiDisplay: roiSign + '$' + amountWithCommas(Math.abs(currentROI).toFixed(2)),
+        lastBalance: amountWithCommas(balance),
+        newBalance: amountWithCommas((balance + currentROI).toFixed(2)),
     };
 }
