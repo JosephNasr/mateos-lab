@@ -134,7 +134,7 @@ test("buildGoldenUpdatePayload returns the full single-account response payload"
     assert.equal(result.gramPrice, 90);
     assert.equal(result.lastAutomatedTxDate, "2024-03-01");
     assert.equal(result.roi, 180000);
-    assert.match(result.displayText, /^1g Price: \$90\n\n\+\$180\.00/);
+    assert.match(result.displayText, /^\+\$180\.00\n\n1g Price: \$90/);
     assert.equal(result.analytics.totalQuantity, 5);
     assert.equal(result.analytics.totalInvested, 270);
     assert.equal(result.analytics.currentBidPrice, 88);

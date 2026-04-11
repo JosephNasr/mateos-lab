@@ -1,6 +1,10 @@
 import { DateTime } from "luxon";
 
 const UNKNOWN_PERSON = "Unknown";
+const GOLDEN_ACCOUNT_BY_PERSON = {
+    joseph: "j",
+    nada: "n",
+};
 
 function normalizeHeaderKey(key) {
     return String(key ?? "")
@@ -316,4 +320,85 @@ export function buildGoldStatsUpdatePayload(rows, goldPrices) {
             ),
         },
     };
+}
+
+function getRowIdentifier(row, index) {
+    if (typeof row.rowNumber === "number" && Number.isFinite(row.rowNumber)) {
+        return `row ${row.rowNumber}`;
+    }
+
+    return `row ${index + 1}`;
+}
+
+function parsePersonToGoldenAccount(person) {
+    if (typeof person !== "string") {
+        return null;
+    }
+
+    return GOLDEN_ACCOUNT_BY_PERSON[person.trim().toLowerCase()] ?? null;
+}
+
+function derivePricePerGram(row) {
+    if (typeof row.price === "number" && Number.isFinite(row.price)) {
+        return row.price;
+    }
+
+    if (
+        typeof row.totalPrice === "number"
+        && Number.isFinite(row.totalPrice)
+        && typeof row.weight === "number"
+        && Number.isFinite(row.weight)
+        && row.weight > 0
+    ) {
+        return row.totalPrice / row.weight;
+    }
+
+    if (row.isGift) {
+        return 0;
+    }
+
+    return null;
+}
+
+function createValidationError(row, index, reason) {
+    return {
+        row: typeof row.rowNumber === "number" && Number.isFinite(row.rowNumber) ? row.rowNumber : (index + 1),
+        message: `${getRowIdentifier(row, index)} ${reason}`,
+    };
+}
+
+export function buildGoldenTransactionsByPerson(rows) {
+    const normalizedRows = normalizeGoldStatsRows(rows);
+    const byPerson = { j: [], n: [] };
+
+    for (let index = 0; index < normalizedRows.length; index += 1) {
+        const row = normalizedRows[index];
+        const account = parsePersonToGoldenAccount(row.person);
+
+        if (!account) {
+            return { error: createValidationError(row, index, "has unsupported person. Expected Joseph or Nada.") };
+        }
+
+        if (typeof row.date !== "string" || row.date.length === 0) {
+            return { error: createValidationError(row, index, "is missing a valid date.") };
+        }
+
+        if (typeof row.weight !== "number" || !Number.isFinite(row.weight) || row.weight <= 0) {
+            return { error: createValidationError(row, index, "is missing a valid positive weight.") };
+        }
+
+        const pricePerGram = derivePricePerGram(row);
+
+        if (!Number.isFinite(pricePerGram)) {
+            return { error: createValidationError(row, index, "is missing a derivable price per gram for a purchase row.") };
+        }
+
+        byPerson[account].push({
+            amount: 1,
+            memo: `${row.weight}g * ${pricePerGram}`,
+            date: row.date,
+        });
+    }
+
+    return { byPerson };
 }

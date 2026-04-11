@@ -2,20 +2,20 @@ import express, { json } from "express";
 import axios from "axios";
 import cors from "cors";
 import { DateTime } from "luxon";
-import { getGoldPrice, getAccount, getAccountTransactions, postTransaction, getExchangeRate, getBeirutWeatherData } from "./requests.js";
+import { getGoldPrice, getAccount, getAccountTransactions, postTransaction, getBeirutWeatherData } from "./requests.js";
 import {
     buildGoldenUpdatePayload,
     buildRoiTransaction,
     getGoldGramPrices,
+    getLastAutomatedTxDate,
     parseGoldenUpdateDualPostPayload,
     parseGoldenUpdateSinglePostPayload,
 } from "./endpoints/golden-update.js";
 import { authorize, tryAgainLater } from "./utils.js";
 import { buildDailyWeatherMessage } from "./endpoints/daily-weather.js";
 import {
-    buildGoldStatsUpdatePayload,
+    buildGoldenTransactionsByPerson,
     extractGoldStatsRows,
-    getRequestedGoldPricePerGram,
 } from "./endpoints/gold-stats-update.js";
 
 
@@ -54,13 +54,62 @@ app.post("/ynab/gold-stats-update", async (req, res) => {
         });
     }
 
-    try {
-        const requestedGramPrice = getRequestedGoldPricePerGram(req.body);
-        const goldPrices = requestedGramPrice !== null
-            ? { gramPrice: requestedGramPrice }
-            : getGoldGramPrices((await axios.get(getGoldPrice().uri)).data);
+    const { byPerson, error: rowValidationError } = buildGoldenTransactionsByPerson(incomingRows);
+    if (rowValidationError) {
+        return res.status(400).json({
+            error: "Invalid gold stats row",
+            details: rowValidationError,
+        });
+    }
 
-        return res.json(buildGoldStatsUpdatePayload(incomingRows, goldPrices));
+    const { headers, budget, accountJ, accountN } = auth;
+    const goldRequest = getGoldPrice();
+    const accountRequestJ = getAccount(budget, accountJ);
+    const transactionsRequestJ = getAccountTransactions(budget, accountJ);
+    const accountRequestN = getAccount(budget, accountN);
+    const transactionsRequestN = getAccountTransactions(budget, accountN);
+
+    const getGoldResponse = () => axios.get(goldRequest.uri);
+    const getAccountResponse = (request) => axios.get(request.uri, { headers: headers });
+    const getTransactionsResponse = (request) => axios.get(request.uri, {
+        headers: headers,
+        params: request.params,
+    });
+
+    try {
+        const [gold, accountJResponse, transactionsJ, accountNResponse, transactionsN] = await Promise.all([
+            getGoldResponse(),
+            getAccountResponse(accountRequestJ),
+            getTransactionsResponse(transactionsRequestJ),
+            getAccountResponse(accountRequestN),
+            getTransactionsResponse(transactionsRequestN),
+        ]);
+        const { gramPrice, gramBidPrice, gramAskPrice } = getGoldGramPrices(gold.data);
+        const goldenUpdateJ = buildGoldenUpdatePayload({
+            balance: accountJResponse.data.data.account.balance / 1000,
+            goldTransactions: byPerson.j,
+            gramPrice,
+            gramBidPrice,
+            gramAskPrice,
+        });
+        const goldenUpdateN = buildGoldenUpdatePayload({
+            balance: accountNResponse.data.data.account.balance / 1000,
+            goldTransactions: byPerson.n,
+            gramPrice,
+            gramBidPrice,
+            gramAskPrice,
+        });
+
+        return res.json({
+            j: {
+                ...goldenUpdateJ,
+                lastAutomatedTxDate: getLastAutomatedTxDate(transactionsJ.data.data.transactions),
+            },
+            n: {
+                ...goldenUpdateN,
+                lastAutomatedTxDate: getLastAutomatedTxDate(transactionsN.data.data.transactions),
+            },
+        });
     } catch (error) {
         return tryAgainLater(res, error);
     }

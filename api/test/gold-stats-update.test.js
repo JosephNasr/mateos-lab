@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+    buildGoldenTransactionsByPerson,
     buildGoldStatsUpdatePayload,
     normalizeGoldStatsRows,
 } from "../src/endpoints/gold-stats-update.js";
@@ -116,4 +117,127 @@ test("buildGoldStatsUpdatePayload groups rows by person and excludes gifts from 
     assert.equal(result.totals.roi, 11010.7);
     assert.equal(result.totals.roiPercentage, 0.657);
     assert.equal(result.totals.roiMilliunits, 11010700);
+});
+
+test("buildGoldenTransactionsByPerson maps Joseph/Nada rows into j/n synthetic transactions", () => {
+    const result = buildGoldenTransactionsByPerson([
+        {
+            row_number: 10,
+            Date: "14/07/2024",
+            Person: "joseph",
+            Amount: 1,
+            Quantity: 100,
+            Weight: 100,
+            "Total Price": 6380,
+            "Price /g": 63.8,
+        },
+        {
+            row_number: 11,
+            Date: "15/07/2024",
+            Person: "NADA",
+            Amount: "",
+            Quantity: "",
+            Weight: 8,
+            "Total Price": "",
+            "Price /g": "",
+        },
+    ]);
+
+    assert.equal(result.error, undefined);
+    assert.deepEqual(result.byPerson, {
+        j: [
+            {
+                amount: 1,
+                memo: "100g * 63.8",
+                date: "2024-07-14",
+            },
+        ],
+        n: [
+            {
+                amount: 1,
+                memo: "8g * 0",
+                date: "2024-07-15",
+            },
+        ],
+    });
+});
+
+test("buildGoldenTransactionsByPerson rejects unsupported people with row details", () => {
+    const result = buildGoldenTransactionsByPerson([
+        {
+            row_number: 30,
+            Date: "14/07/2024",
+            Person: "Ali",
+            Amount: 1,
+            Quantity: 10,
+            Weight: 10,
+            "Total Price": 600,
+            "Price /g": 60,
+        },
+    ]);
+
+    assert.equal(result.byPerson, undefined);
+    assert.deepEqual(result.error, {
+        row: 30,
+        message: "row 30 has unsupported person. Expected Joseph or Nada.",
+    });
+});
+
+test("buildGoldenTransactionsByPerson rejects purchase rows that cannot derive a price per gram", () => {
+    const result = buildGoldenTransactionsByPerson([
+        {
+            row_number: 40,
+            Date: "14/07/2024",
+            Person: "Joseph",
+            Amount: 1,
+            Quantity: 10,
+            Weight: 10,
+            "Total Price": "",
+            "Price /g": "",
+        },
+    ]);
+
+    assert.equal(result.byPerson, undefined);
+    assert.deepEqual(result.error, {
+        row: 40,
+        message: "row 40 is missing a derivable price per gram for a purchase row.",
+    });
+});
+
+test("buildGoldenTransactionsByPerson rejects rows with missing date or invalid weight", () => {
+    const missingDateResult = buildGoldenTransactionsByPerson([
+        {
+            row_number: 50,
+            Date: "",
+            Person: "Joseph",
+            Amount: "",
+            Quantity: "",
+            Weight: 5,
+            "Total Price": "",
+            "Price /g": "",
+        },
+    ]);
+
+    assert.deepEqual(missingDateResult.error, {
+        row: 50,
+        message: "row 50 is missing a valid date.",
+    });
+
+    const invalidWeightResult = buildGoldenTransactionsByPerson([
+        {
+            row_number: 51,
+            Date: "14/07/2024",
+            Person: "Nada",
+            Amount: "",
+            Quantity: "",
+            Weight: 0,
+            "Total Price": "",
+            "Price /g": "",
+        },
+    ]);
+
+    assert.deepEqual(invalidWeightResult.error, {
+        row: 51,
+        message: "row 51 is missing a valid positive weight.",
+    });
 });

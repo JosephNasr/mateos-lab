@@ -1,13 +1,4 @@
 
-export function getTransactions(budget, sinceDate) {
-    return ({
-        uri: `https://api.ynab.com/v1/budgets/${budget}/transactions`,
-        params: {
-            since_date: sinceDate,
-        },
-    });
-};
-
 export function getAccountTransactions(budget, account) {
     return ({
         uri: `https://api.ynab.com/v1/budgets/${budget}/accounts/${account}/transactions`,
@@ -21,13 +12,6 @@ export function postTransaction(budget, transaction) {
     });
 }
 
-export function patchTransactions(budget, transactions) {
-    return ({
-        uri: `https://api.ynab.com/v1/budgets/${budget}/transactions`,
-        data: { transactions },
-    });
-}
-
 export function getAccount(budget, account) {
     return ({
         uri: `https://api.ynab.com/v1/budgets/${budget}/accounts/${account}`,
@@ -37,12 +21,6 @@ export function getAccount(budget, account) {
 export function getGoldPrice() {
     return ({
         uri: `https://api.gold-api.com/price/XAU`
-    });
-}
-
-export function getExchangeRate(currency) {
-    return ({
-        uri: `https://api.frankfurter.dev/v1/latest?from=${currency}&to=USD`
     });
 }
 

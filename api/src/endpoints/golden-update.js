@@ -52,9 +52,9 @@ function isManualGoldPurchaseTransaction(tx) {
 }
 
 export function getLastTxDate(goldTransactions) {
-    return goldTransactions
+    return (goldTransactions || [])
         .map(tx => new Date(tx.date))
-        .sort((a, b) => b - a)[0].toISOString().split('T')[0];
+        .sort((a, b) => b - a)[0]?.toISOString().split('T')[0] || DateTime.now().toISODate();
 }
 
 export function getLastAutomatedTxDate(goldTransactions) {
