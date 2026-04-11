@@ -17,8 +17,6 @@ import {
     extractGoldStatsRows,
     getRequestedGoldPricePerGram,
 } from "./endpoints/gold-stats-update.js";
-// import { deviceExtractMiddleware } from "./middlewares/device_extract.js";
-// import { responseTimeMiddleware } from "./middlewares/response_time.js";
 
 
 const app = express();
@@ -30,10 +28,6 @@ function invalidGoldenUpdatePayload(res) {
 
 app.use(cors());
 app.use(json());
-
-// app.set("trust proxy", true);
-// app.use(deviceExtractMiddleware()); // /\ order matters here
-// app.use(responseTimeMiddleware()); //  \/ and here
 
 
 app.listen(PORT, '0.0.0.0', () => {
