@@ -90,6 +90,7 @@ app.post("/ynab/gold-stats-update", async (req, res) => {
             j: buildGoldenUpdatePayload({
                 balance: accountJResponse.data.data.account.balance / 1000,
                 goldTransactions: byPerson.j,
+                automatedDateTransactions: transactionsJ.data.data.transactions,
                 gramPrice,
                 gramBidPrice,
                 gramAskPrice,
@@ -97,6 +98,7 @@ app.post("/ynab/gold-stats-update", async (req, res) => {
             n: buildGoldenUpdatePayload({
                 balance: accountNResponse.data.data.account.balance / 1000,
                 goldTransactions: byPerson.n,
+                automatedDateTransactions: transactionsN.data.data.transactions,
                 gramPrice,
                 gramBidPrice,
                 gramAskPrice,

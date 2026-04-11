@@ -161,6 +161,25 @@ test("buildGoldenUpdatePayload returns the full single-account response payload"
     });
 });
 
+test("buildGoldenUpdatePayload uses automatedDateTransactions override for last automated date", () => {
+    const result = buildGoldenUpdatePayload({
+        balance: 270,
+        goldTransactions: [
+            { amount: 120000, memo: "2g * 60", date: "2024-01-03" },
+            { amount: 150000, memo: "3g * 50", date: "2024-02-10" },
+        ],
+        automatedDateTransactions: [
+            { amount: 170000, memo: "Automated: 1g * 89", date: "2024-03-03" },
+            { amount: 180000, memo: "Automated: 1g * 91", date: "2024-03-10" },
+        ],
+        gramPrice: 90,
+        gramBidPrice: 88,
+        gramAskPrice: 89,
+    });
+
+    assert.equal(result.lastAutomatedTxDate, "2024-03-10");
+});
+
 test("parseGoldenUpdateSinglePostPayload accepts the core fields by themselves", () => {
     assert.deepEqual(
         parseGoldenUpdateSinglePostPayload(createSinglePostPayload()),

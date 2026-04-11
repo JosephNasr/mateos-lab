@@ -98,9 +98,16 @@ export function getGoldGramPrices(goldData) {
     };
 }
 
-export function buildGoldenUpdatePayload({ balance, goldTransactions, gramPrice, gramBidPrice, gramAskPrice }) {
+export function buildGoldenUpdatePayload({
+    balance,
+    goldTransactions,
+    gramPrice,
+    gramBidPrice,
+    gramAskPrice,
+    automatedDateTransactions,
+}) {
     const purchaseTransactions = getGoldPurchaseTransactions(goldTransactions);
-    const lastAutomatedTxDate = getLastAutomatedTxDate(goldTransactions);
+    const lastAutomatedTxDate = getLastAutomatedTxDate(automatedDateTransactions ?? []);
     const currentGoldWeight = getTotalGoldWeight(goldTransactions);
     const roiData = getRoiData(gramPrice, balance, currentGoldWeight);
     const analytics = calculateGoldPortfolioAnalytics(purchaseTransactions, gramBidPrice, gramAskPrice);
