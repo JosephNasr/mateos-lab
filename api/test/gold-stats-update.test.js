@@ -72,14 +72,28 @@ const sampleRows = [
     },
 ];
 
-test("normalizeGoldStatsRows marks fully blank purchase fields as gifts", () => {
+test("normalizeGoldStatsRows marks blank or zeroed purchase fields as gifts", () => {
     const rows = normalizeGoldStatsRows(sampleRows);
+    const zeroedRows = normalizeGoldStatsRows([
+        {
+            row_number: 99,
+            Date: "01/01/2026",
+            Person: "Joseph",
+            Amount: "0",
+            Quantity: "0.00",
+            Weight: 4,
+            "Total Price": "$0",
+            "Price /g": 99,
+        },
+    ]);
 
     assert.equal(rows[0].isGift, true);
     assert.equal(rows[0].spending, null);
     assert.equal(rows[2].isGift, false);
     assert.equal(rows[2].quantity, "Ounce");
     assert.equal(rows[2].spending, 4000);
+    assert.equal(zeroedRows[0].isGift, true);
+    assert.equal(zeroedRows[0].spending, null);
 });
 
 test("buildGoldStatsUpdatePayload groups rows by person and excludes gifts from spending", () => {
@@ -135,11 +149,11 @@ test("buildGoldenTransactionsByPerson maps Joseph/Nada rows into j/n synthetic t
             row_number: 11,
             Date: "15/07/2024",
             Person: "NADA",
-            Amount: "",
-            Quantity: "",
+            Amount: "0",
+            Quantity: "0.00",
             Weight: 8,
-            "Total Price": "",
-            "Price /g": "",
+            "Total Price": "$0",
+            "Price /g": 63.8,
         },
     ]);
 
@@ -150,6 +164,7 @@ test("buildGoldenTransactionsByPerson maps Joseph/Nada rows into j/n synthetic t
                 amount: 1,
                 memo: "100g * 63.8",
                 date: "2024-07-14",
+                isGift: false,
             },
         ],
         n: [
@@ -157,6 +172,7 @@ test("buildGoldenTransactionsByPerson maps Joseph/Nada rows into j/n synthetic t
                 amount: 1,
                 memo: "8g * 0",
                 date: "2024-07-15",
+                isGift: true,
             },
         ],
     });

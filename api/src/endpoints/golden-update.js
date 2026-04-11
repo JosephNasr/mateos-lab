@@ -82,6 +82,7 @@ export function getGoldPurchaseTransactions(goldTransactions) {
             return {
                 ...purchaseDetails,
                 purchaseDate: tx.date,
+                isGift: tx.isGift === true,
             };
         })
         .filter(Boolean);
@@ -187,11 +188,12 @@ export function getRoiData(gramPrice, balance, lastTxDate, currentGoldWeight) {
     return {
         roi: Math.floor(currentROI * 1000),
         lastUpdated: new Date(lastTxDate).toDateString(),
-        displayText: `${roiSign}$${amountWithCommas(Math.abs(currentROI).toFixed(2))}
-
-1g Price: $${gramPrice}
-Total Weight: ${currentGoldWeight}g
-Last Balance: $${amountWithCommas(balance)}
-New Balance: $${amountWithCommas((balance + currentROI).toFixed(2))}`,
+        headline: {
+            roiDisplay: roiSign + '$' + amountWithCommas(Math.abs(currentROI).toFixed(2)),
+            gramPrice,
+            currentGoldWeight,
+            lastBalance: amountWithCommas(balance),
+            newBalance: amountWithCommas((balance + currentROI).toFixed(2)),
+        }
     };
 }

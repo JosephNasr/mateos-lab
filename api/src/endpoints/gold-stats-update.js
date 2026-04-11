@@ -21,6 +21,14 @@ function hasCellValue(value) {
     return value !== null && value !== undefined && String(value).trim() !== "";
 }
 
+function isZeroOrBlankCell(value) {
+    if (!hasCellValue(value)) {
+        return true;
+    }
+
+    return parseNumberish(value) === 0;
+}
+
 function parseNumberish(value) {
     if (typeof value === "number") {
         return Number.isFinite(value) ? value : null;
@@ -235,13 +243,18 @@ export function normalizeGoldStatsRows(rows) {
             const quantityRaw = quantityKey ? row[quantityKey] : null;
             const totalPriceRaw = totalPriceKey ? row[totalPriceKey] : null;
             const priceRaw = priceKey ? row[priceKey] : null;
+            const isZeroOrBlankPurchaseTriplet = [
+                amountRaw,
+                quantityRaw,
+                totalPriceRaw,
+            ].every(isZeroOrBlankCell);
             const hasPurchaseFields = [
                 amountRaw,
                 quantityRaw,
                 totalPriceRaw,
                 priceRaw,
             ].some(hasCellValue);
-            const isGift = !hasPurchaseFields;
+            const isGift = !hasPurchaseFields || isZeroOrBlankPurchaseTriplet;
 
             const rowNumber = parseNumberish(rowNumberKey ? row[rowNumberKey] : null);
             const date = parseSheetDate(dateKey ? row[dateKey] : null);
@@ -339,6 +352,10 @@ function parsePersonToGoldenAccount(person) {
 }
 
 function derivePricePerGram(row) {
+    if (row.isGift) {
+        return 0;
+    }
+
     if (typeof row.price === "number" && Number.isFinite(row.price)) {
         return row.price;
     }
@@ -351,10 +368,6 @@ function derivePricePerGram(row) {
         && row.weight > 0
     ) {
         return row.totalPrice / row.weight;
-    }
-
-    if (row.isGift) {
-        return 0;
     }
 
     return null;
@@ -397,6 +410,7 @@ export function buildGoldenTransactionsByPerson(rows) {
             amount: 1,
             memo: `${row.weight}g * ${pricePerGram}`,
             date: row.date,
+            isGift: row.isGift,
         });
     }
 

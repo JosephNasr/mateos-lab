@@ -40,8 +40,8 @@ test("getGoldPurchaseTransactions keeps only valid manual purchases and sums the
     ];
 
     assert.deepEqual(getGoldPurchaseTransactions(transactions), [
-        { quantityInGrams: 2, pricePerGram: 60.5, purchaseDate: "2024-01-03" },
-        { quantityInGrams: 4.4, pricePerGram: 65, purchaseDate: "2024-01-07" },
+        { quantityInGrams: 2, pricePerGram: 60.5, purchaseDate: "2024-01-03", isGift: false },
+        { quantityInGrams: 4.4, pricePerGram: 65, purchaseDate: "2024-01-07", isGift: false },
     ]);
 
     assert.equal(getTotalGoldWeight(transactions), 6.4);
@@ -52,17 +52,19 @@ test("calculateGoldPortfolioAnalytics returns a chronological weighted breakdown
         { quantityInGrams: 1, pricePerGram: 100, purchaseDate: "2024-02-10" },
         { quantityInGrams: 3, pricePerGram: 50, purchaseDate: "2024-01-01" },
         { quantityInGrams: 2, pricePerGram: 80, purchaseDate: "2024-01-20" },
+        { quantityInGrams: 0.5, pricePerGram: 200, purchaseDate: "2024-02-15", isGift: true },
         { quantityInGrams: 0, pricePerGram: 999, purchaseDate: "2024-03-01" },
         { quantityInGrams: 1.5, pricePerGram: Number.NaN, purchaseDate: "2024-03-02" },
     ], 90, 92);
 
     assert.deepEqual(analytics.purchaseBreakdown, [
-        { quantityInGrams: 3, pricePerGram: 50, purchaseDate: "2024-01-01" },
-        { quantityInGrams: 2, pricePerGram: 80, purchaseDate: "2024-01-20" },
-        { quantityInGrams: 1, pricePerGram: 100, purchaseDate: "2024-02-10" },
+        { quantityInGrams: 3, pricePerGram: 50, purchaseDate: "2024-01-01", isGift: false },
+        { quantityInGrams: 2, pricePerGram: 80, purchaseDate: "2024-01-20", isGift: false },
+        { quantityInGrams: 1, pricePerGram: 100, purchaseDate: "2024-02-10", isGift: false },
+        { quantityInGrams: 0.5, pricePerGram: 200, purchaseDate: "2024-02-15", isGift: true },
     ]);
 
-    assert.equal(analytics.totalQuantity, 6);
+    assert.equal(analytics.totalQuantity, 6.5);
     assert.equal(
         analytics.totalQuantity,
         analytics.purchaseBreakdown.reduce((sum, purchase) => sum + purchase.quantityInGrams, 0)
@@ -71,20 +73,20 @@ test("calculateGoldPortfolioAnalytics returns a chronological weighted breakdown
     assert.equal(
         analytics.totalInvested,
         analytics.purchaseBreakdown.reduce(
-            (sum, purchase) => sum + (purchase.quantityInGrams * purchase.pricePerGram),
+            (sum, purchase) => sum + (purchase.isGift ? 0 : (purchase.quantityInGrams * purchase.pricePerGram)),
             0
         )
     );
-    assert.equal(analytics.averageCost, 68.333);
+    assert.equal(analytics.averageCost, 63.077);
     assert.equal(analytics.currentBidPrice, 90);
     assert.equal(analytics.currentAskPrice, 92);
     assert.equal(analytics.spread, 2);
     assert.equal(analytics.spreadPct, 0.0217);
-    assert.equal(analytics.currentValue, 540);
-    assert.equal(analytics.profit, 130);
-    assert.equal(analytics.returnPct, 0.3171);
-    assert.equal(analytics.breakEvenPrice, 68.333);
-    assert.equal(analytics.distanceToBreakEven, 21.67);
+    assert.equal(analytics.currentValue, 585);
+    assert.equal(analytics.profit, 175);
+    assert.equal(analytics.returnPct, 0.4268);
+    assert.equal(analytics.breakEvenPrice, 63.077);
+    assert.equal(analytics.distanceToBreakEven, 26.92);
 
     for (const field of [
         "purchaseBreakdown",
@@ -137,6 +139,7 @@ test("buildGoldenUpdatePayload returns the full single-account response payload"
     assert.match(result.displayText, /^\+\$180\.00\n\n1g Price: \$90/);
     assert.equal(result.analytics.totalQuantity, 5);
     assert.equal(result.analytics.totalInvested, 270);
+    assert.equal(result.analytics.purchaseBreakdown.every((purchase) => purchase.isGift === false), true);
     assert.equal(result.analytics.currentBidPrice, 88);
     assert.equal(result.analytics.currentAskPrice, 89);
     assert.equal(result.analytics.currentValue, 440);

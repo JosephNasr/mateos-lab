@@ -46,6 +46,7 @@ function normalizePurchaseTransaction(transaction) {
     const quantityInGrams = Number(transaction?.quantityInGrams);
     const pricePerGram = Number(transaction?.pricePerGram);
     const purchaseDate = transaction?.purchaseDate;
+    const isGift = transaction?.isGift === true;
 
     if (!Number.isFinite(quantityInGrams) || !Number.isFinite(pricePerGram) || quantityInGrams <= 0) {
         return null;
@@ -59,6 +60,7 @@ function normalizePurchaseTransaction(transaction) {
         purchaseDate,
         quantityInGrams,
         pricePerGram,
+        isGift,
     };
 }
 
@@ -78,10 +80,13 @@ export function calculateGoldPortfolioAnalytics(transactions, bidPrice, askPrice
     const aggregates = purchaseBreakdown.reduce((acc, transaction) => {
         const quantityInGrams = Number(transaction?.quantityInGrams);
         const pricePerGram = Number(transaction?.pricePerGram);
+        const isGift = transaction?.isGift === true;
 
         return {
             totalQuantityScaled: acc.totalQuantityScaled + toScaledInteger(quantityInGrams, 1000),
-            totalInvestedCents: acc.totalInvestedCents + toScaledInteger(quantityInGrams * pricePerGram, 100),
+            totalInvestedCents: isGift
+                ? acc.totalInvestedCents
+                : acc.totalInvestedCents + toScaledInteger(quantityInGrams * pricePerGram, 100),
         };
     }, {
         totalQuantityScaled: 0,
