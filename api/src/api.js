@@ -31,6 +31,49 @@ function getGoldGramPrices(goldData) {
     };
 }
 
+function normalizeHeaderKey(key) {
+    return String(key ?? "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+}
+
+function findMatchingKey(row, matcher) {
+    return Object.keys(row).find((key) => matcher(normalizeHeaderKey(key)));
+}
+
+function parseNumberish(value) {
+    if (typeof value === "number") {
+        return Number.isFinite(value) ? value : null;
+    }
+
+    if (typeof value !== "string") {
+        return null;
+    }
+
+    const numeric = Number(value.replace(/[^\d.-]/g, ""));
+    return Number.isFinite(numeric) ? numeric : null;
+}
+
+function parseSheetDate(value) {
+    if (typeof value !== "string" || !value.trim()) {
+        return null;
+    }
+
+    const trimmed = value.trim();
+    const formatAttempt = DateTime.fromFormat(trimmed, "d/M/yyyy");
+    if (formatAttempt.isValid) {
+        return formatAttempt.toISODate();
+    }
+
+    const isoAttempt = DateTime.fromISO(trimmed);
+    if (isoAttempt.isValid) {
+        return isoAttempt.toISODate();
+    }
+
+    return null;
+}
+
 app.use(cors());
 app.use(json());
 
@@ -48,6 +91,118 @@ app.get("/health", (req, res) => {
 });
 
 app.get("/device", (req, res) => res.json(req.deviceInfo));
+
+app.post("/gold-update-stats", async (req, res) => {
+    authorize(req, res, "budget", "account-j", "account-n");
+
+    const incomingRows = Array.isArray(req.body)
+        ? req.body
+        : (Array.isArray(req.body?.rows) ? req.body.rows : []);
+
+    if (!incomingRows.length) {
+        return res.status(400).json({
+            message: "Request body must be an array of rows or an object with a rows array",
+        });
+    }
+
+    const normalizedRows = incomingRows
+        .filter((row) => row && typeof row === "object")
+        .map((row) => {
+            const rowNumberKey = findMatchingKey(row, (k) => k === "row number" || k === "rownumber");
+            const personKey = findMatchingKey(row, (k) => k === "person" || k === "name");
+            const dateKey = findMatchingKey(row, (k) => k === "date");
+            const notesKey = findMatchingKey(row, (k) => k === "notes" || k === "note");
+            const weightKey = findMatchingKey(row, (k) => k.startsWith("weight"));
+            const priceKey = findMatchingKey(row, (k) => k.startsWith("price"));
+
+            const rowNumber = parseNumberish(rowNumberKey ? row[rowNumberKey] : null);
+            const person = personKey ? String(row[personKey] ?? "").trim() : null;
+            const dateRaw = dateKey ? row[dateKey] : null;
+            const date = parseSheetDate(dateRaw);
+            const weight = parseNumberish(weightKey ? row[weightKey] : null);
+            const price = parseNumberish(priceKey ? row[priceKey] : null);
+            const notes = notesKey ? String(row[notesKey] ?? "").trim() : null;
+            const totalCost = (weight !== null && price !== null) ? Number((weight * price).toFixed(2)) : null;
+
+            return {
+                rowNumber,
+                person: person || null,
+                date,
+                dateRaw,
+                weight,
+                price,
+                totalCost,
+                notes: notes || null,
+                detectedColumns: {
+                    rowNumber: rowNumberKey || null,
+                    person: personKey || null,
+                    date: dateKey || null,
+                    weight: weightKey || null,
+                    price: priceKey || null,
+                    notes: notesKey || null,
+                },
+                raw: row,
+            };
+        });
+
+    const totals = normalizedRows.reduce((acc, row) => {
+        const personKey = row.person || "Unknown";
+
+        if (!acc.byPerson[personKey]) {
+            acc.byPerson[personKey] = {
+                count: 0,
+                totalWeight: 0,
+                totalCost: 0,
+            };
+        }
+
+        acc.byPerson[personKey].count += 1;
+        acc.totalRows += 1;
+
+        if (typeof row.weight === "number") {
+            acc.totalWeight += row.weight;
+            acc.byPerson[personKey].totalWeight += row.weight;
+        }
+
+        if (typeof row.totalCost === "number") {
+            acc.totalCost += row.totalCost;
+            acc.byPerson[personKey].totalCost += row.totalCost;
+        }
+
+        return acc;
+    }, {
+        totalRows: 0,
+        totalWeight: 0,
+        totalCost: 0,
+        byPerson: {},
+    });
+
+    totals.totalWeight = Number(totals.totalWeight.toFixed(4));
+    totals.totalCost = Number(totals.totalCost.toFixed(2));
+
+    Object.keys(totals.byPerson).forEach((person) => {
+        totals.byPerson[person].totalWeight = Number(totals.byPerson[person].totalWeight.toFixed(4));
+        totals.byPerson[person].totalCost = Number(totals.byPerson[person].totalCost.toFixed(2));
+    });
+
+    return res.json({
+        rows: normalizedRows,
+        totals,
+    });
+});
+
+/*
+Sample body:
+[
+  {
+    "row_number": 2,
+    "Person": "Nada",
+    "Date": "11/09/2021",
+    "Weight (g)": 8,
+    "Price ($/g)": 0
+  }
+]
+*/
 
 app.get("/ynab/golden-update", async (req, res) => {
     const { headers, budget, accountJ, accountN } = authorize(req, res, "budget", "account-j", "account-n");
@@ -247,27 +402,6 @@ app.post("/ynab/golden-update-single", async (req, res) => {
     }
 });
 
-app.post("/sms", async (req, res) => {
-    const { headers, budget, account } = authorize(req, res, "budget", "account");
-    const { smsText } = req.body;
-
-    const { amount, currency, payee_raw, card } = deconstructSms(smsText);
-    let usdAmount = amount;
-
-    if (currency !== 'USD') {
-        const exchangeRateRequest = getExchangeRate(currency);
-        const response = await axios.get(exchangeRateRequest.uri);
-
-        if (response.status !== 200) return res.json({ message: "Could not convert to USD" });
-
-        const rate = Number(response.data.rates["USD"]);
-        if (!Number.isFinite(rate)) return res.json({ message: "Bad FX payload" });
-
-        usdAmount = Math.round(amount * rate * 100) / 100;
-    }
-
-    return res.json({ amount, currency, payee_raw, card, usdAmount });
-});
 
 app.get("/weather", async (req, res) => {
     const beirutWeatherDataRequest = getBeirutWeatherData();
