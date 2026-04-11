@@ -113,10 +113,9 @@ export function buildGoldenUpdatePayload({ balance, goldTransactions, gramPrice,
     const analytics = calculateGoldPortfolioAnalytics(purchaseTransactions, gramBidPrice, gramAskPrice);
 
     return {
+        ...roiData,
         gramPrice,
         lastAutomatedTxDate,
-        roi: roiData.roi,
-        displayText: roiData.displayText,
         analytics,
     };
 }
