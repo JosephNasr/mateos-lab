@@ -77,16 +77,16 @@ test("calculateGoldPortfolioAnalytics returns a chronological weighted breakdown
             0
         )
     );
-    assert.equal(analytics.averageCost, 63.077);
+    assert.equal(analytics.averageCost, 78.462);
     assert.equal(analytics.currentBidPrice, 90);
     assert.equal(analytics.currentAskPrice, 92);
     assert.equal(analytics.spread, 2);
     assert.equal(analytics.spreadPct, 0.0217);
     assert.equal(analytics.currentValue, 585);
-    assert.equal(analytics.profit, 175);
-    assert.equal(analytics.returnPct, 0.4268);
-    assert.equal(analytics.breakEvenPrice, 63.077);
-    assert.equal(analytics.distanceToBreakEven, 26.92);
+    assert.equal(analytics.profit, 75);
+    assert.equal(analytics.returnPct, 0.1471);
+    assert.equal(analytics.breakEvenPrice, 78.462);
+    assert.equal(analytics.distanceToBreakEven, 11.54);
 
     for (const field of [
         "purchaseBreakdown",
@@ -133,18 +133,32 @@ test("buildGoldenUpdatePayload returns the full single-account response payload"
         gramAskPrice: 89,
     });
 
-    assert.equal(result.gramPrice, 90);
-    assert.equal(result.lastAutomatedTxDate, "2024-03-01");
-    assert.equal(result.roi, 180000);
-    assert.match(result.displayText, /^\+\$180\.00\n\n1g Price: \$90/);
-    assert.equal(result.analytics.totalQuantity, 5);
-    assert.equal(result.analytics.totalInvested, 270);
-    assert.equal(result.analytics.purchaseBreakdown.every((purchase) => purchase.isGift === false), true);
-    assert.equal(result.analytics.currentBidPrice, 88);
-    assert.equal(result.analytics.currentAskPrice, 89);
-    assert.equal(result.analytics.currentValue, 440);
-    assert.equal(result.analytics.profit, 170);
-    assert.equal(result.analytics.distanceToBreakEven, 34);
+    assert.deepEqual(result, {
+        roi: 180000,
+        roiDisplay: "+$180.00",
+        lastBalance: "270",
+        newBalance: "450.00",
+        gramPrice: 90,
+        lastAutomatedTxDate: "2024-03-01",
+        analytics: {
+            purchaseBreakdown: [
+                { purchaseDate: "2024-01-03", quantityInGrams: 2, pricePerGram: 60, isGift: false },
+                { purchaseDate: "2024-02-10", quantityInGrams: 3, pricePerGram: 50, isGift: false },
+            ],
+            totalQuantity: 5,
+            totalInvested: 270,
+            averageCost: 54,
+            currentBidPrice: 88,
+            currentAskPrice: 89,
+            spread: 1,
+            spreadPct: 0.0112,
+            currentValue: 440,
+            profit: 170,
+            returnPct: 0.6296,
+            breakEvenPrice: 54,
+            distanceToBreakEven: 34,
+        },
+    });
 });
 
 test("parseGoldenUpdateSinglePostPayload accepts the core fields by themselves", () => {

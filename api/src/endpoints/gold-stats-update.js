@@ -352,10 +352,6 @@ function parsePersonToGoldenAccount(person) {
 }
 
 function derivePricePerGram(row) {
-    if (row.isGift) {
-        return 0;
-    }
-
     if (typeof row.price === "number" && Number.isFinite(row.price)) {
         return row.price;
     }
@@ -368,6 +364,10 @@ function derivePricePerGram(row) {
         && row.weight > 0
     ) {
         return row.totalPrice / row.weight;
+    }
+
+    if (row.isGift) {
+        return 0;
     }
 
     return null;

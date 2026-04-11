@@ -81,26 +81,30 @@ export function calculateGoldPortfolioAnalytics(transactions, bidPrice, askPrice
         const quantityInGrams = Number(transaction?.quantityInGrams);
         const pricePerGram = Number(transaction?.pricePerGram);
         const isGift = transaction?.isGift === true;
+        const transactionCostCents = toScaledInteger(quantityInGrams * pricePerGram, 100);
 
         return {
             totalQuantityScaled: acc.totalQuantityScaled + toScaledInteger(quantityInGrams, 1000),
-            totalInvestedCents: isGift
-                ? acc.totalInvestedCents
-                : acc.totalInvestedCents + toScaledInteger(quantityInGrams * pricePerGram, 100),
+            investedExcludingGiftsCents: isGift
+                ? acc.investedExcludingGiftsCents
+                : acc.investedExcludingGiftsCents + transactionCostCents,
+            investedIncludingGiftsCents: acc.investedIncludingGiftsCents + transactionCostCents,
         };
     }, {
         totalQuantityScaled: 0,
-        totalInvestedCents: 0,
+        investedExcludingGiftsCents: 0,
+        investedIncludingGiftsCents: 0,
     });
 
     const totalQuantity = roundQuantity(fromScaledInteger(aggregates.totalQuantityScaled, 1000));
-    const totalInvested = roundCurrency(fromScaledInteger(aggregates.totalInvestedCents, 100));
-    const averageCost = roundQuantity(safeDivide(totalInvested, totalQuantity));
+    const totalInvested = roundCurrency(fromScaledInteger(aggregates.investedExcludingGiftsCents, 100));
+    const investedIncludingGifts = roundCurrency(fromScaledInteger(aggregates.investedIncludingGiftsCents, 100));
+    const averageCost = roundQuantity(safeDivide(investedIncludingGifts, totalQuantity));
     const spread = roundCurrency(normalizedAskPrice - normalizedBidPrice);
     const spreadPct = roundPercentage(safeDivide(spread, normalizedAskPrice));
     const currentValue = roundCurrency(totalQuantity * normalizedBidPrice);
-    const profit = roundCurrency(currentValue - totalInvested);
-    const returnPct = roundPercentage(safeDivide(profit, totalInvested));
+    const profit = roundCurrency(currentValue - investedIncludingGifts);
+    const returnPct = roundPercentage(safeDivide(profit, investedIncludingGifts));
     const breakEvenPrice = averageCost;
     const distanceToBreakEven = roundCurrency(normalizedBidPrice - averageCost);
 

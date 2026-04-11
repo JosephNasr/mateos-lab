@@ -170,8 +170,36 @@ test("buildGoldenTransactionsByPerson maps Joseph/Nada rows into j/n synthetic t
         n: [
             {
                 amount: 1,
-                memo: "8g * 0",
+                memo: "8g * 63.8",
                 date: "2024-07-15",
+                isGift: true,
+            },
+        ],
+    });
+});
+
+test("buildGoldenTransactionsByPerson falls back to zero price for blank gift rows", () => {
+    const result = buildGoldenTransactionsByPerson([
+        {
+            row_number: 12,
+            Date: "16/07/2024",
+            Person: "Nada",
+            Amount: "",
+            Quantity: "",
+            Weight: 5,
+            "Total Price": "",
+            "Price /g": "",
+        },
+    ]);
+
+    assert.equal(result.error, undefined);
+    assert.deepEqual(result.byPerson, {
+        j: [],
+        n: [
+            {
+                amount: 1,
+                memo: "5g * 0",
+                date: "2024-07-16",
                 isGift: true,
             },
         ],
