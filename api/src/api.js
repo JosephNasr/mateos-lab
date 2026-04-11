@@ -3,8 +3,13 @@ import axios from "axios";
 import cors from "cors";
 import { DateTime } from "luxon";
 import { getGoldPrice, getAccount, getAccountTransactions, postTransaction, getExchangeRate, getBeirutWeatherData } from "./requests.js";
-import { getLastAutomatedTxDate, getLastTxDate, getTotalGoldWeight, getRoiData, buildRoiTransaction, getGoldPurchaseTransactions } from "./endpoints/golden-update.js";
-import { calculateGoldPortfolioAnalytics } from "./endpoints/goldPortfolioAnalyticsCalculator.js";
+import {
+    buildGoldenUpdatePayload,
+    buildRoiTransaction,
+    getGoldGramPrices,
+    parseGoldenUpdateDualPostPayload,
+    parseGoldenUpdateSinglePostPayload,
+} from "./endpoints/golden-update.js";
 import { authorize, tryAgainLater } from "./utils.js";
 import { deconstructSms } from "./sms/utils.js";
 import { buildDailyWeatherMessage } from "./endpoints/daily-weather.js";
@@ -15,20 +20,8 @@ import { buildDailyWeatherMessage } from "./endpoints/daily-weather.js";
 const app = express();
 const PORT = process.env.PORT || 4211;
 
-function getGoldGramPrices(goldData) {
-    const ouncePrice = Number(goldData?.price ?? goldData?.bid ?? goldData?.ask);
-    const ounceBidPrice = Number(goldData?.bid ?? ouncePrice);
-    const ounceAskPrice = Number(goldData?.ask ?? ouncePrice);
-
-    if (!Number.isFinite(ouncePrice) || !Number.isFinite(ounceBidPrice) || !Number.isFinite(ounceAskPrice)) {
-        throw new Error("Gold price payload is missing bid/ask values");
-    }
-
-    return {
-        gramPrice: (ouncePrice / 31.1035).toFixed(2),
-        gramBidPrice: Number((ounceBidPrice / 31.1035).toFixed(2)),
-        gramAskPrice: Number((ounceAskPrice / 31.1035).toFixed(2)),
-    };
+function invalidGoldenUpdatePayload(res) {
+    return res.status(400).json({ error: "Invalid golden update payload" });
 }
 
 function normalizeHeaderKey(key) {
@@ -221,52 +214,31 @@ app.get("/ynab/golden-update", async (req, res) => {
     });
 
     try {
-        await Promise.all([
+        const [gold, accountJResponse, transactionsJ, accountNResponse, transactionsN] = await Promise.all([
             getGoldResponse(),
             getAccountResponse(accountRequestJ),
             getTransactionsResponse(transactionsRequestJ),
             getAccountResponse(accountRequestN),
             getTransactionsResponse(transactionsRequestN),
-        ]).then(([gold, accountJ, transactionsJ, accountN, transactionsN]) => {
-            const { gramPrice } = getGoldGramPrices(gold.data);
+        ]);
 
-            const balanceJ = accountJ.data.data.account.balance / 1000;
-            const balanceN = accountN.data.data.account.balance / 1000;
+        const { gramPrice, gramBidPrice, gramAskPrice } = getGoldGramPrices(gold.data);
 
-            const goldTransactionsJ = transactionsJ.data.data.transactions;
-            const goldTransactionsN = transactionsN.data.data.transactions;
-
-            const lastAutomatedTxDateJ = getLastAutomatedTxDate(goldTransactionsJ);
-            const lastAutomatedTxDateN = getLastAutomatedTxDate(goldTransactionsN);
-
-            const lastTxDateJ = getLastTxDate(goldTransactionsJ);
-            const lastTxDateN = getLastTxDate(goldTransactionsN);
-
-            const currentGoldWeightJ = getTotalGoldWeight(goldTransactionsJ);
-            const currentGoldWeightN = getTotalGoldWeight(goldTransactionsN);
-
-            const roiDataJ = getRoiData(gramPrice, balanceJ, lastTxDateJ, currentGoldWeightJ);
-            const roiDataN = getRoiData(gramPrice, balanceN, lastTxDateN, currentGoldWeightN);
-
-            const result = res.json({
-                gramPrice: gramPrice,
-                lastAutomatedTxDateJ: lastAutomatedTxDateJ,
-                lastAutomatedTxDateN: lastAutomatedTxDateN,
-                roiJ: roiDataJ.roi,
-                roiN: roiDataN.roi,
-                displayText: [
-                    [
-                        `1g: $${gramPrice}`,
-                        `1oz: $${(gold.data.price).toFixed(2)}`,
-                    ].join("\n"),
-                    `Joseph: ${roiDataJ.displayText}`,
-                    `Nada: ${roiDataN.displayText}`,
-                    `Since ${roiDataJ.lastUpdated}`,
-                ].join("\n\n"),
-            });
-
-            // console.log(result);
-            return result;
+        return res.json({
+            j: buildGoldenUpdatePayload({
+                balance: accountJResponse.data.data.account.balance / 1000,
+                goldTransactions: transactionsJ.data.data.transactions,
+                gramPrice,
+                gramBidPrice,
+                gramAskPrice,
+            }),
+            n: buildGoldenUpdatePayload({
+                balance: accountNResponse.data.data.account.balance / 1000,
+                goldTransactions: transactionsN.data.data.transactions,
+                gramPrice,
+                gramBidPrice,
+                gramAskPrice,
+            }),
         });
     } catch (error) {
         return tryAgainLater(res, error);
@@ -274,19 +246,31 @@ app.get("/ynab/golden-update", async (req, res) => {
 });
 
 app.post("/ynab/golden-update", async (req, res) => {
-    const { headers, budget, accountJ, accountN } = authorize(req, res, "budget", "account-j", "account-n");
-    const { gramPrice, lastAutomatedTxDateJ, lastAutomatedTxDateN, roiJ, roiN } = req.body;
+    const auth = authorize(req, res, "budget", "account-j", "account-n");
 
-    const dateWorksJ = !lastAutomatedTxDateJ || lastAutomatedTxDateJ != DateTime.now().toISODate();
-    const dateWorksN = !lastAutomatedTxDateN || lastAutomatedTxDateN != DateTime.now().toISODate();
+    if (!auth?.headers) {
+        return auth;
+    }
 
-    const insignificantRoiJ = roiJ < 10 && roiJ > -10;
-    const insignificantRoiN = roiN < 10 && roiN > -10;
+    const { headers, budget, accountJ, accountN } = auth;
+    const goldenUpdatePayload = parseGoldenUpdateDualPostPayload(req.body);
 
-    const roiTransactionJ = buildRoiTransaction(accountJ, roiJ, gramPrice);
+    if (!goldenUpdatePayload) {
+        return invalidGoldenUpdatePayload(res);
+    }
+
+    const { j: goldenUpdateJ, n: goldenUpdateN, gramPrice } = goldenUpdatePayload;
+
+    const dateWorksJ = !goldenUpdateJ.lastAutomatedTxDate || goldenUpdateJ.lastAutomatedTxDate != DateTime.now().toISODate();
+    const dateWorksN = !goldenUpdateN.lastAutomatedTxDate || goldenUpdateN.lastAutomatedTxDate != DateTime.now().toISODate();
+
+    const insignificantRoiJ = goldenUpdateJ.roi < 10 && goldenUpdateJ.roi > -10;
+    const insignificantRoiN = goldenUpdateN.roi < 10 && goldenUpdateN.roi > -10;
+
+    const roiTransactionJ = buildRoiTransaction(accountJ, goldenUpdateJ.roi, gramPrice);
     const requestJ = postTransaction(budget, roiTransactionJ);
 
-    const roiTransactionN = buildRoiTransaction(accountN, roiN, gramPrice);
+    const roiTransactionN = buildRoiTransaction(accountN, goldenUpdateN.roi, gramPrice);
     const requestN = postTransaction(budget, roiTransactionN);
 
     let messageJ = "Joseph: ";
@@ -339,42 +323,41 @@ app.get("/ynab/golden-update-single", async (req, res) => {
     });
 
     try {
-        await Promise.all([
+        const [gold, accountResponse, transactions] = await Promise.all([
             getGoldResponse(),
             getAccountResponse(accountRequest),
             getTransactionsResponse(transactionsRequest),
-        ]).then(([gold, account, transactions]) => {
-            const { gramPrice, gramBidPrice, gramAskPrice } = getGoldGramPrices(gold.data);
-            const balance = account.data.data.account.balance / 1000;
-            const goldTransactions = transactions.data.data.transactions;
-            const purchaseTransactions = getGoldPurchaseTransactions(goldTransactions);
+        ]);
 
-            const lastAutomatedTxDate = getLastAutomatedTxDate(goldTransactions);
-            const lastTxDate = getLastTxDate(goldTransactions);
-            const currentGoldWeight = getTotalGoldWeight(goldTransactions);
-            const roiData = getRoiData(gramPrice, balance, lastTxDate, currentGoldWeight);
-            const analytics = calculateGoldPortfolioAnalytics(purchaseTransactions, gramBidPrice, gramAskPrice);
+        const { gramPrice, gramBidPrice, gramAskPrice } = getGoldGramPrices(gold.data);
 
-            return res.json({
-                gramPrice: gramPrice,
-                lastAutomatedTxDate: lastAutomatedTxDate,
-                roi: roiData.roi,
-                displayText: [
-                    `1g Price: $${gramPrice}`,
-                    roiData.displayText,
-                ]
-                    .join("\n\n"),
-                analytics,
-            });
-        });
+        return res.json(buildGoldenUpdatePayload({
+            balance: accountResponse.data.data.account.balance / 1000,
+            goldTransactions: transactions.data.data.transactions,
+            gramPrice,
+            gramBidPrice,
+            gramAskPrice,
+        }));
     } catch (error) {
         return tryAgainLater(res, error);
     }
 });
 
 app.post("/ynab/golden-update-single", async (req, res) => {
-    const { headers, budget, account } = authorize(req, res, "budget", "account");
-    const { gramPrice, lastAutomatedTxDate, roi } = req.body;
+    const auth = authorize(req, res, "budget", "account");
+
+    if (!auth?.headers) {
+        return auth;
+    }
+
+    const { headers, budget, account } = auth;
+    const goldenUpdatePayload = parseGoldenUpdateSinglePostPayload(req.body);
+
+    if (!goldenUpdatePayload) {
+        return invalidGoldenUpdatePayload(res);
+    }
+
+    const { gramPrice, lastAutomatedTxDate, roi } = goldenUpdatePayload;
 
     const dateWorks = !lastAutomatedTxDate || lastAutomatedTxDate != DateTime.now().toISODate();
     const insignificantRoi = roi < 10 && roi > -10;

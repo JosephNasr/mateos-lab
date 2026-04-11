@@ -1,9 +1,26 @@
 import { DateTime } from "luxon";
+import { calculateGoldPortfolioAnalytics } from "./goldPortfolioAnalyticsCalculator.js";
 
 const GOLD_MEMO_PATTERN = /([\d.]+)g \* ([\d.]+)/;
 
 function amountWithCommas(amount) {
     return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+function isPlainObject(value) {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isValidNumericValue(value) {
+    if (typeof value === "number") {
+        return Number.isFinite(value);
+    }
+
+    if (typeof value === "string") {
+        return value.trim() !== "" && Number.isFinite(Number(value));
+    }
+
+    return false;
 }
 
 function parseGoldPurchaseMemo(memo) {
@@ -70,6 +87,86 @@ export function getGoldPurchaseTransactions(goldTransactions) {
         .filter(Boolean);
 }
 
+export function getGoldGramPrices(goldData) {
+    const ouncePrice = Number(goldData?.price ?? goldData?.bid ?? goldData?.ask);
+    const ounceBidPrice = Number(goldData?.bid ?? ouncePrice);
+    const ounceAskPrice = Number(goldData?.ask ?? ouncePrice);
+
+    if (!Number.isFinite(ouncePrice) || !Number.isFinite(ounceBidPrice) || !Number.isFinite(ounceAskPrice)) {
+        throw new Error("Gold price payload is missing bid/ask values");
+    }
+
+    return {
+        gramPrice: (ouncePrice / 31.1035).toFixed(2),
+        gramBidPrice: Number((ounceBidPrice / 31.1035).toFixed(2)),
+        gramAskPrice: Number((ounceAskPrice / 31.1035).toFixed(2)),
+    };
+}
+
+export function buildGoldenUpdatePayload({ balance, goldTransactions, gramPrice, gramBidPrice, gramAskPrice }) {
+    const purchaseTransactions = getGoldPurchaseTransactions(goldTransactions);
+    const lastAutomatedTxDate = getLastAutomatedTxDate(goldTransactions);
+    const lastTxDate = getLastTxDate(goldTransactions);
+    const currentGoldWeight = getTotalGoldWeight(goldTransactions);
+    const roiData = getRoiData(gramPrice, balance, lastTxDate, currentGoldWeight);
+    const analytics = calculateGoldPortfolioAnalytics(purchaseTransactions, gramBidPrice, gramAskPrice);
+
+    return {
+        gramPrice,
+        lastAutomatedTxDate,
+        roi: roiData.roi,
+        displayText: roiData.displayText,
+        analytics,
+    };
+}
+
+export function parseGoldenUpdateSinglePostPayload(payload) {
+    if (!isPlainObject(payload) || "j" in payload || "n" in payload) {
+        return null;
+    }
+
+    const { gramPrice, lastAutomatedTxDate, roi } = payload;
+
+    if (!isValidNumericValue(gramPrice) || typeof lastAutomatedTxDate !== "string" || lastAutomatedTxDate.length === 0) {
+        return null;
+    }
+
+    if (typeof roi !== "number" || !Number.isFinite(roi)) {
+        return null;
+    }
+
+    return {
+        gramPrice,
+        lastAutomatedTxDate,
+        roi,
+    };
+}
+
+export function parseGoldenUpdateDualPostPayload(payload) {
+    if (!isPlainObject(payload)) {
+        return null;
+    }
+
+    const keys = Object.keys(payload);
+
+    if (keys.length !== 2 || !keys.includes("j") || !keys.includes("n")) {
+        return null;
+    }
+
+    const j = parseGoldenUpdateSinglePostPayload(payload.j);
+    const n = parseGoldenUpdateSinglePostPayload(payload.n);
+
+    if (!j || !n || Number(j.gramPrice) !== Number(n.gramPrice)) {
+        return null;
+    }
+
+    return {
+        j,
+        n,
+        gramPrice: j.gramPrice,
+    };
+}
+
 export function buildRoiTransaction(account, currentROI, goldPrice) {
     return {
         account_id: account,
@@ -91,6 +188,8 @@ export function getRoiData(gramPrice, balance, lastTxDate, currentGoldWeight) {
         roi: Math.floor(currentROI * 1000),
         lastUpdated: new Date(lastTxDate).toDateString(),
         displayText: `${roiSign}$${amountWithCommas(Math.abs(currentROI).toFixed(2))}
+
+1g Price: $${gramPrice}
 Total Weight: ${currentGoldWeight}g
 Last Balance: $${amountWithCommas(balance)}
 New Balance: $${amountWithCommas((balance + currentROI).toFixed(2))}`,
