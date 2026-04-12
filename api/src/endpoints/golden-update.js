@@ -194,7 +194,7 @@ export function getRoiData(gramPrice, balance, currentGoldWeight) {
     return {
         roi: Math.floor(currentROI * 1000),
         roiDisplay: roiSign + '$' + amountWithCommas(Math.abs(currentROI).toFixed(2)),
-        lastBalance: amountWithCommas(balance.toFixed(2)),
-        newBalance: amountWithCommas((balance + currentROI).toFixed(2)),
+        lastBalance: balance,
+        newBalance: balance + currentROI,
     };
 }
