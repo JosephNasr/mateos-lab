@@ -5,6 +5,7 @@ import {
     getGoldGramPrices,
     getGoldPurchaseTransactions,
     getTotalGoldWeight,
+    normalizeLastAutomatedTxDate,
     parseGoldenUpdateDualPostPayload,
     parseGoldenUpdateSinglePostPayload,
 } from "../src/endpoints/golden-update.js";
@@ -28,6 +29,11 @@ function createDualPostPayload(overrides = {}) {
         }),
         ...overrides,
     };
+}
+
+function shouldAllowRoiUpdate(lastAutomatedTxDate, todayIsoDate) {
+    const normalizedLastAutomatedTxDate = normalizeLastAutomatedTxDate(lastAutomatedTxDate);
+    return !normalizedLastAutomatedTxDate || normalizedLastAutomatedTxDate !== todayIsoDate;
 }
 
 test("getGoldPurchaseTransactions keeps only valid manual purchases and sums their weight", () => {
@@ -120,6 +126,23 @@ test("getGoldGramPrices converts ounce prices to gram prices", () => {
     });
 });
 
+test("normalizeLastAutomatedTxDate parses supported date formats and treats never/invalid as empty", () => {
+    assert.equal(normalizeLastAutomatedTxDate("2026-04-12"), "2026-04-12");
+    assert.equal(normalizeLastAutomatedTxDate("Sunday, April 12, 2026"), "2026-04-12");
+    assert.equal(normalizeLastAutomatedTxDate("Never"), null);
+    assert.equal(normalizeLastAutomatedTxDate(""), null);
+    assert.equal(normalizeLastAutomatedTxDate("not a date"), null);
+});
+
+test("same-day guard blocks today's updates for ISO and long display dates", () => {
+    const todayIsoDate = "2026-04-12";
+
+    assert.equal(shouldAllowRoiUpdate("2026-04-12", todayIsoDate), false);
+    assert.equal(shouldAllowRoiUpdate("Sunday, April 12, 2026", todayIsoDate), false);
+    assert.equal(shouldAllowRoiUpdate("Never", todayIsoDate), true);
+    assert.equal(shouldAllowRoiUpdate("nonsense", todayIsoDate), true);
+});
+
 test("buildGoldenUpdatePayload returns the full single-account response payload", () => {
     const result = buildGoldenUpdatePayload({
         balance: 270,
@@ -136,10 +159,10 @@ test("buildGoldenUpdatePayload returns the full single-account response payload"
     assert.deepEqual(result, {
         roi: 180000,
         roiDisplay: "+$180.00",
-        lastBalance: "270",
-        newBalance: "450.00",
+        lastBalance: 270,
+        newBalance: 450,
         gramPrice: 90,
-        lastAutomatedTxDate: "2024-03-01",
+        lastAutomatedTxDate: "Never",
         analytics: {
             purchaseBreakdown: [
                 { purchaseDate: "2024-01-03", quantityInGrams: 2, pricePerGram: 60, isGift: false },
@@ -147,6 +170,7 @@ test("buildGoldenUpdatePayload returns the full single-account response payload"
             ],
             totalQuantity: 5,
             totalInvested: 270,
+            investedIncludingGifts: 270,
             averageCost: 54,
             currentBidPrice: 88,
             currentAskPrice: 89,
@@ -177,7 +201,7 @@ test("buildGoldenUpdatePayload uses automatedDateTransactions override for last 
         gramAskPrice: 89,
     });
 
-    assert.equal(result.lastAutomatedTxDate, "2024-03-10");
+    assert.equal(normalizeLastAutomatedTxDate(result.lastAutomatedTxDate), "2024-03-10");
 });
 
 test("parseGoldenUpdateSinglePostPayload accepts the core fields by themselves", () => {

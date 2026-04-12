@@ -7,7 +7,7 @@ import {
     buildGoldenUpdatePayload,
     buildRoiTransaction,
     getGoldGramPrices,
-    getLastAutomatedTxDate,
+    normalizeLastAutomatedTxDate,
     parseGoldenUpdateDualPostPayload,
     parseGoldenUpdateSinglePostPayload,
 } from "./endpoints/golden-update.js";
@@ -43,8 +43,8 @@ app.get("/device", (req, res) => res.json(req.deviceInfo));
 app.post("/ynab/gold-stats-update", async (req, res) => {
     const auth = authorize(req, res, "budget", "account-j", "account-n");
 
-    if (!auth?.headers) {
-        return auth;
+    if (!auth) {
+        return;
     }
 
     const incomingRows = extractGoldStatsRows(req.body);
@@ -111,7 +111,12 @@ app.post("/ynab/gold-stats-update", async (req, res) => {
 });
 
 app.get("/ynab/golden-update", async (req, res) => {
-    const { headers, budget, accountJ, accountN } = authorize(req, res, "budget", "account-j", "account-n");
+    const auth = authorize(req, res, "budget", "account-j", "account-n");
+    if (!auth) {
+        return;
+    }
+
+    const { headers, budget, accountJ, accountN } = auth;
 
     const goldRequest = getGoldPrice();
     const accountRequestJ = getAccount(budget, accountJ);
@@ -141,6 +146,7 @@ app.get("/ynab/golden-update", async (req, res) => {
             j: buildGoldenUpdatePayload({
                 balance: accountJResponse.data.data.account.balance / 1000,
                 goldTransactions: transactionsJ.data.data.transactions,
+                automatedDateTransactions: transactionsJ.data.data.transactions,
                 gramPrice,
                 gramBidPrice,
                 gramAskPrice,
@@ -148,6 +154,7 @@ app.get("/ynab/golden-update", async (req, res) => {
             n: buildGoldenUpdatePayload({
                 balance: accountNResponse.data.data.account.balance / 1000,
                 goldTransactions: transactionsN.data.data.transactions,
+                automatedDateTransactions: transactionsN.data.data.transactions,
                 gramPrice,
                 gramBidPrice,
                 gramAskPrice,
@@ -161,8 +168,8 @@ app.get("/ynab/golden-update", async (req, res) => {
 app.post("/ynab/golden-update", async (req, res) => {
     const auth = authorize(req, res, "budget", "account-j", "account-n");
 
-    if (!auth?.headers) {
-        return auth;
+    if (!auth) {
+        return;
     }
 
     const { headers, budget, accountJ, accountN } = auth;
@@ -173,9 +180,11 @@ app.post("/ynab/golden-update", async (req, res) => {
     }
 
     const { j: goldenUpdateJ, n: goldenUpdateN, gramPrice } = goldenUpdatePayload;
+    const normalizedLastAutomatedTxDateJ = normalizeLastAutomatedTxDate(goldenUpdateJ.lastAutomatedTxDate);
+    const normalizedLastAutomatedTxDateN = normalizeLastAutomatedTxDate(goldenUpdateN.lastAutomatedTxDate);
 
-    const dateWorksJ = !goldenUpdateJ.lastAutomatedTxDate || goldenUpdateJ.lastAutomatedTxDate != DateTime.now().toISODate();
-    const dateWorksN = !goldenUpdateN.lastAutomatedTxDate || goldenUpdateN.lastAutomatedTxDate != DateTime.now().toISODate();
+    const dateWorksJ = !normalizedLastAutomatedTxDateJ || normalizedLastAutomatedTxDateJ !== DateTime.now().toISODate();
+    const dateWorksN = !normalizedLastAutomatedTxDateN || normalizedLastAutomatedTxDateN !== DateTime.now().toISODate();
 
     const insignificantRoiJ = goldenUpdateJ.roi < 10 && goldenUpdateJ.roi > -10;
     const insignificantRoiN = goldenUpdateN.roi < 10 && goldenUpdateN.roi > -10;
@@ -209,7 +218,7 @@ app.post("/ynab/golden-update", async (req, res) => {
         } else if (!dateWorksN) {
             messageN += "Cannot update on the same day";
         } else {
-            messageJ += "Something went wrong";
+            messageN += "Something went wrong";
         }
 
         const result = res.json({ message: `${messageJ}\n${messageN}` });
@@ -222,7 +231,12 @@ app.post("/ynab/golden-update", async (req, res) => {
 });
 
 app.get("/ynab/golden-update-single", async (req, res) => {
-    const { headers, budget, account } = authorize(req, res, "budget", "account");
+    const auth = authorize(req, res, "budget", "account");
+    if (!auth) {
+        return;
+    }
+
+    const { headers, budget, account } = auth;
 
     const goldRequest = getGoldPrice();
     const accountRequest = getAccount(budget, account);
@@ -247,6 +261,7 @@ app.get("/ynab/golden-update-single", async (req, res) => {
         return res.json(buildGoldenUpdatePayload({
             balance: accountResponse.data.data.account.balance / 1000,
             goldTransactions: transactions.data.data.transactions,
+            automatedDateTransactions: transactions.data.data.transactions,
             gramPrice,
             gramBidPrice,
             gramAskPrice,
@@ -259,8 +274,8 @@ app.get("/ynab/golden-update-single", async (req, res) => {
 app.post("/ynab/golden-update-single", async (req, res) => {
     const auth = authorize(req, res, "budget", "account");
 
-    if (!auth?.headers) {
-        return auth;
+    if (!auth) {
+        return;
     }
 
     const { headers, budget, account } = auth;
@@ -271,8 +286,9 @@ app.post("/ynab/golden-update-single", async (req, res) => {
     }
 
     const { gramPrice, lastAutomatedTxDate, roi } = goldenUpdatePayload;
+    const normalizedLastAutomatedTxDate = normalizeLastAutomatedTxDate(lastAutomatedTxDate);
 
-    const dateWorks = !lastAutomatedTxDate || lastAutomatedTxDate != DateTime.now().toISODate();
+    const dateWorks = !normalizedLastAutomatedTxDate || normalizedLastAutomatedTxDate !== DateTime.now().toISODate();
     const insignificantRoi = roi < 10 && roi > -10;
 
     const roiTransaction = buildRoiTransaction(account, roi, gramPrice);
@@ -300,11 +316,15 @@ app.post("/ynab/golden-update-single", async (req, res) => {
 
 
 app.get("/weather", async (req, res) => {
-    const beirutWeatherDataRequest = getBeirutWeatherData();
-    const response = await axios.get(beirutWeatherDataRequest.uri);
+    try {
+        const beirutWeatherDataRequest = getBeirutWeatherData();
+        const response = await axios.get(beirutWeatherDataRequest.uri);
 
-    if (response.status !== 200) return res.json({ message: "Could not get Weather data: " + response.statusText });
+        if (response.status !== 200) return res.json({ message: "Could not get Weather data: " + response.statusText });
 
-    const message = buildDailyWeatherMessage(beirutWeatherData)
-    return res.json({ status: "🙃 ok 🏎️" });
+        buildDailyWeatherMessage(response.data);
+        return res.json({ status: "🙃 ok 🏎️" });
+    } catch (error) {
+        return tryAgainLater(res, error);
+    }
 });

@@ -13,20 +13,22 @@ export function tryAgainLater(res, error) {
 
 export function authorize(req, res, ...heads) {
     if (!req.headers["authorization"]) {
-        return tryAgainLater(res);
+        tryAgainLater(res);
+        return null;
     }
 
     const token = req.headers["authorization"];
     const headers = { Authorization: token };
 
     const keys = {};
-    heads.forEach(head => {
+    for (const head of heads) {
         if (!req.headers[head]) {
-            return tryAgainLater(res);
+            tryAgainLater(res);
+            return null;
         }
 
         keys[camelCase(head)] = req.headers[head];
-    });
+    }
 
     return { headers, ...keys };
 };

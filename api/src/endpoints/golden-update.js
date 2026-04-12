@@ -65,6 +65,30 @@ export function getLastAutomatedTxDate(goldTransactions) {
         .sort((a, b) => b - a)[0]?.toLocaleDateString('en-US', dateFormat) || "Never";
 }
 
+export function normalizeLastAutomatedTxDate(lastAutomatedTxDate) {
+    if (typeof lastAutomatedTxDate !== "string") {
+        return null;
+    }
+
+    const trimmedDate = lastAutomatedTxDate.trim();
+
+    if (!trimmedDate || trimmedDate.toLowerCase() === "never") {
+        return null;
+    }
+
+    const isoDate = DateTime.fromISO(trimmedDate);
+    if (isoDate.isValid) {
+        return isoDate.toISODate();
+    }
+
+    const displayDate = DateTime.fromFormat(trimmedDate, "cccc, LLLL d, yyyy", { locale: "en-US" });
+    if (displayDate.isValid) {
+        return displayDate.toISODate();
+    }
+
+    return null;
+}
+
 export function getTotalGoldWeight(goldTransactions) {
     return getGoldPurchaseTransactions(goldTransactions)
         .reduce((acc, transaction) => acc + transaction.quantityInGrams, 0);
