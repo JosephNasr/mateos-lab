@@ -112,6 +112,7 @@ export function calculateGoldPortfolioAnalytics(transactions, bidPrice, askPrice
         purchaseBreakdown,
         totalQuantity,
         totalInvested,
+        investedIncludingGifts,
         averageCost,
         currentBidPrice: normalizedBidPrice,
         currentAskPrice: normalizedAskPrice,
