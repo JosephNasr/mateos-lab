@@ -213,18 +213,6 @@ export function extractGoldStatsRows(payload) {
         : (Array.isArray(payload?.rows) ? payload.rows : []);
 }
 
-export function getRequestedGoldPricePerGram(payload) {
-    if (!payload || Array.isArray(payload)) {
-        return null;
-    }
-
-    return parseNumberish(
-        payload.currentPricePerGram
-        ?? payload.gramPrice
-        ?? payload.pricePerGram
-    );
-}
-
 export function normalizeGoldStatsRows(rows) {
     return rows
         .filter((row) => row && typeof row === "object")

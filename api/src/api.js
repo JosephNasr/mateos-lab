@@ -34,7 +34,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`API Server running on port ${PORT}`);
 });
 
-app.get("/health", (req, res) => {
+app.get("/health", (_req, res) => {
     return res.json({ status: "🙃 ok 🏎️" });
 });
 
@@ -315,7 +315,7 @@ app.post("/ynab/golden-update-single", async (req, res) => {
 });
 
 
-app.get("/weather", async (req, res) => {
+app.get("/weather", async (_req, res) => {
     try {
         const beirutWeatherDataRequest = getBeirutWeatherData();
         const response = await axios.get(beirutWeatherDataRequest.uri);

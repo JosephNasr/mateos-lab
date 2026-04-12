@@ -51,7 +51,7 @@ function isManualGoldPurchaseTransaction(tx) {
     return tx.amount > 0 && typeof tx.memo === "string" && !tx.memo.startsWith("Automated");
 }
 
-export function getLastAutomatedTxDate(goldTransactions) {
+function getLastAutomatedTxDate(goldTransactions) {
     const dateFormat = {
         weekday: 'long',
         year: 'numeric',
@@ -211,7 +211,7 @@ export function buildRoiTransaction(account, currentROI, goldPrice) {
     };
 }
 
-export function getRoiData(gramPrice, balance, currentGoldWeight) {
+function getRoiData(gramPrice, balance, currentGoldWeight) {
     const currentROI = (currentGoldWeight * gramPrice) - balance;
     const roiSign = currentROI < 0 ? "-" : "+";
 
