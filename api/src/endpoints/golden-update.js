@@ -122,7 +122,7 @@ export function buildGoldenUpdatePayload({
     return {
         ...roiData,
         gramPrice,
-        lastAutomatedTxDate: new Date(lastAutomatedTxDate).toDateString(),
+        lastAutomatedTxDate,
         analytics,
     };
 }
