@@ -52,10 +52,17 @@ function isManualGoldPurchaseTransaction(tx) {
 }
 
 export function getLastAutomatedTxDate(goldTransactions) {
+    const dateFormat = {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    };
+
     return goldTransactions
         .filter(tx => typeof tx.memo === "string" && tx.memo.startsWith("Automated"))
         .map(tx => new Date(tx.date))
-        .sort((a, b) => b - a)[0]?.toISOString().split('T')[0] || "Never";
+        .sort((a, b) => b - a)[0]?.toLocaleDateString('en-US', dateFormat) || "Never";
 }
 
 export function getTotalGoldWeight(goldTransactions) {
@@ -115,7 +122,7 @@ export function buildGoldenUpdatePayload({
     return {
         ...roiData,
         gramPrice,
-        lastAutomatedTxDate,
+        lastAutomatedTxDate: new Date(lastAutomatedTxDate).toDateString(),
         analytics,
     };
 }
@@ -187,7 +194,7 @@ export function getRoiData(gramPrice, balance, currentGoldWeight) {
     return {
         roi: Math.floor(currentROI * 1000),
         roiDisplay: roiSign + '$' + amountWithCommas(Math.abs(currentROI).toFixed(2)),
-        lastBalance: amountWithCommas(balance),
+        lastBalance: amountWithCommas(balance.toFixed(2)),
         newBalance: amountWithCommas((balance + currentROI).toFixed(2)),
     };
 }
