@@ -9,7 +9,7 @@ import {
     parseGoldenUpdateDualPostPayload,
     parseGoldenUpdateSinglePostPayload,
 } from "../src/endpoints/golden-update.js";
-import { calculateGoldPortfolioAnalytics } from "../src/endpoints/goldPortfolioAnalyticsCalculator.js";
+import { calculateGoldPortfolioAnalytics } from "../src/endpoints/gold-portfolio-analytics-calculator.js";
 
 function createSinglePostPayload(overrides = {}) {
     return {

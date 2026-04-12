@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { authorize } from "../src/utils.js";
+import { authorize } from "../src/utils/auth.js";
 
 function createMockResponse() {
     const state = {};

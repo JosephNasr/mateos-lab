@@ -4,7 +4,7 @@ import {
     getAccount,
     getAccountTransactions,
     postTransaction,
-} from "../src/requests.js";
+} from "../src/requests/ynab.js";
 
 test("getAccountTransactions builds the plans account-transactions URI", () => {
     const result = getAccountTransactions("plan-123", "account-456");

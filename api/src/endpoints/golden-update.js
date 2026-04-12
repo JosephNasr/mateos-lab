@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import { calculateGoldPortfolioAnalytics } from "./goldPortfolioAnalyticsCalculator.js";
+import { calculateGoldPortfolioAnalytics } from "./gold-portfolio-analytics-calculator.js";
 
 const GOLD_MEMO_PATTERN = /([\d.]+)g \* ([\d.]+)/;
 
