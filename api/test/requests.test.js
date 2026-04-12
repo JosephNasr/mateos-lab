@@ -13,6 +13,21 @@ test("getAccountTransactions builds the plans account-transactions URI", () => {
         result.uri,
         "https://api.ynab.com/v1/plans/plan-123/accounts/account-456/transactions"
     );
+    assert.equal(result.params, undefined);
+});
+
+test("getAccountTransactions adds since_date query param when provided", () => {
+    const result = getAccountTransactions("plan-123", "account-456", {
+        sinceDate: "2026-03-12",
+    });
+
+    assert.equal(
+        result.uri,
+        "https://api.ynab.com/v1/plans/plan-123/accounts/account-456/transactions"
+    );
+    assert.deepEqual(result.params, {
+        since_date: "2026-03-12",
+    });
 });
 
 test("postTransaction builds the plans transactions URI and wraps payload", () => {

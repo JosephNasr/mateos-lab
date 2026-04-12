@@ -63,11 +63,12 @@ app.post("/ynab/gold-stats-update", async (req, res) => {
     }
 
     const { headers, budget, accountJ, accountN } = auth;
+    const sinceDate = DateTime.now().minus({ months: 1 }).toISODate();
     const goldRequest = getGoldPrice();
     const accountRequestJ = getAccount(budget, accountJ);
-    const transactionsRequestJ = getAccountTransactions(budget, accountJ);
+    const transactionsRequestJ = getAccountTransactions(budget, accountJ, { sinceDate });
     const accountRequestN = getAccount(budget, accountN);
-    const transactionsRequestN = getAccountTransactions(budget, accountN);
+    const transactionsRequestN = getAccountTransactions(budget, accountN, { sinceDate });
 
     const getGoldResponse = () => axios.get(goldRequest.uri);
     const getAccountResponse = (request) => axios.get(request.uri, { headers: headers });

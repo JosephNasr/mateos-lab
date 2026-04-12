@@ -1,7 +1,10 @@
 
-export function getAccountTransactions(budget, account) {
+export function getAccountTransactions(budget, account, options = {}) {
+    const { sinceDate } = options;
+
     return ({
         uri: `https://api.ynab.com/v1/plans/${budget}/accounts/${account}/transactions`,
+        ...(sinceDate ? { params: { since_date: sinceDate } } : {}),
     });
 };
 
