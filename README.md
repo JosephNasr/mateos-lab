@@ -1,6 +1,6 @@
 # Homelab Containers
 
-This repository stores the Docker Compose projects that power the homelab. The root `makefile` is the orchestration layer: it loads `/home/zeezoux/containers/.env`, assigns each stack a Compose project name based on its directory, and can run the same lifecycle command across every stack or a single stack via `STACK=<name>`.
+This repository stores the Docker Compose projects that power the homelab. The root `makefile` is the orchestration layer: it loads `./.env`, assigns each stack a Compose project name based on its directory, and can run the same lifecycle command across every stack or a single stack via `STACK=<name>`.
 
 ## Stack Overview
 
