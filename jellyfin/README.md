@@ -66,6 +66,7 @@ qBittorrent:
 
 - Set the default save path to `/downloads/complete`
 - Set the incomplete downloads path to `/downloads/incomplete`
+- Keep DHT, PeX, and Local Peer Discovery enabled for magnet links
 
 Sonarr:
 
@@ -90,6 +91,24 @@ Jellyseerr:
 - Jellyfin server: `http://jellyfin:8096`
 - Sonarr server: `http://sonarr:8989`
 - Radarr server: `http://radarr:7878`
+
+## qBittorrent Metadata Troubleshooting
+
+If manually added magnets stay stuck at `Downloading metadata`, first make sure the container and persisted qBittorrent settings agree on the torrent port:
+
+```bash
+docker compose --env-file /home/zeezoux/containers/.env -p jellyfin -f jellyfin/docker-compose.yml up -d --force-recreate qbittorrent
+docker exec qbittorrent sh -lc 'grep -E "Session\\\\Port|DHT|PeX|LSD|Proxy" /config/qBittorrent/qBittorrent.conf || true'
+```
+
+In qBittorrent's Web UI, check:
+
+- Tools > Options > Connection > Listening Port is `6881`, or your `QBITTORRENT_PORT` value
+- Tools > Options > BitTorrent has DHT, PeX, and Local Peer Discovery enabled
+- Tools > Options > Connection has no proxy configured unless you intentionally use one
+- The host firewall allows inbound TCP and UDP on `QBITTORRENT_PORT`
+
+Router port forwarding is not strictly required to download, but forwarding TCP and UDP `QBITTORRENT_PORT` to the Docker host makes qBittorrent an active peer and usually fixes weak peer discovery on private or sparse swarms.
 
 ## Optional Hardware Transcoding
 

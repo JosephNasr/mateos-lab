@@ -53,11 +53,13 @@ services:
       - plex_net
 
   jellyseerr:
-    image: fallenbagel/jellyseerr:latest
+    image: ghcr.io/seerr-team/seerr:latest
     container_name: jellyseerr
+    init: true
     environment:
       - TZ=${TIMEZONE}
       - LOG_LEVEL=info
+      - PORT=5055
     volumes:
       - ${APPDATA_DIR}/jellyseerr:/app/config
     ports:
