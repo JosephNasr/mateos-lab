@@ -1,3 +1,5 @@
+.DS_Store
+
 # Ignore local environment files anywhere in this repo.
 .env
 **/.env

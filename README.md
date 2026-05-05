@@ -9,12 +9,12 @@ This repository stores the Docker Compose projects that power the homelab. The r
 | `api` | `api` | `api` | Custom Node/Express automation API for YNAB gold tracking, SMS parsing, and weather helpers. |
 | `cloudflared` | `cloudflared` | `cloudflared` | Cloudflare Tunnel that exposes internal services on the shared `web` network. |
 | `home_assistant` | `home_assistant` | `homeassistant`, `mosquitto` | Home automation hub plus a local MQTT broker for device integrations. |
-| `jellyfin` | `jellyfin` | `jellyfin` | Media streaming server. The compose file also keeps the wider media stack commented out for later use. |
+| `jellyfin` | `jellyfin` | `qbittorrent`, `jellyfin`, `jellyseerr`, `prowlarr`, `sonarr`, `radarr` | LAN-only media streaming, requests, automation, and downloads. |
 | `n8n` | `n8n` | `n8n` | Workflow automation service backed by a persistent SQLite data volume. |
 | `paperless` | `paperless` | `webserver`, `db`, `broker`, `gotenberg`, `tika` | Document ingestion, OCR, and search stack. |
 | `portainer` | `portainer` | `portainer` | Docker management UI for the homelab. |
 
-The commented media-stack services in `jellyfin/docker-compose.yml` are still part of the intended design: `jellyseerr`, `prowlarr`, `sonarr`, `radarr`, `qbittorrent`, and `samba`.
+The Jellyfin stack intentionally excludes LAN file sharing; media access is handled through Jellyfin and the automation apps.
 
 ## Shared Prerequisites
 
