@@ -1,4 +1,4 @@
-# Full LAN-only Jellyfin media stack.
+# Jellyfin media stack.
 #
 # Services:
 # - Jellyfin: media streaming
@@ -36,7 +36,7 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TIMEZONE}
-      - JELLYFIN_PublishedServerUrl=http://${PI_IP}:8096
+      - JELLYFIN_PublishedServerUrl=${JELLYFIN_PUBLIC_URL}
     volumes:
       - ${APPDATA_DIR}/jellyfin:/config
       - ${TV_DIR}:/data/tv
@@ -51,6 +51,7 @@ services:
     restart: unless-stopped
     networks:
       - plex_net
+      - web
 
   jellyseerr:
     image: fallenbagel/jellyseerr:latest
@@ -65,6 +66,7 @@ services:
     restart: unless-stopped
     networks:
       - plex_net
+      - web
     depends_on:
       - jellyfin
 
@@ -126,3 +128,5 @@ services:
 networks:
   plex_net:
     driver: bridge
+  web:
+    external: true

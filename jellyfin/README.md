@@ -1,6 +1,6 @@
 # Jellyfin
 
-Full LAN-only media stack:
+Full media stack:
 
 - Jellyfin for streaming
 - Jellyseerr for media requests
@@ -27,6 +27,7 @@ cp .env.example .env
 Required Jellyfin stack values:
 
 - `PI_IP`
+- `JELLYFIN_PUBLIC_URL` if exposing Jellyfin publicly
 - `APPDATA_DIR`
 - `MEDIA_ROOT`
 - `TV_DIR`
@@ -54,6 +55,23 @@ make ps STACK=jellyfin
 - Sonarr: `http://PI_IP:8989`
 - Radarr: `http://PI_IP:7878`
 - qBittorrent: `http://PI_IP:8080`
+
+## Cloudflare Tunnel Routes
+
+The `jellyfin` and `jellyseerr` containers also join the external `web` Docker network so the existing `cloudflared` container can reach them by service name.
+
+In the Cloudflare Zero Trust dashboard, add these Published Application routes to the same tunnel used by n8n:
+
+- `requests.example.com` -> `http://jellyseerr:5055`
+- `watch.example.com` -> `http://jellyfin:8096`
+
+Replace `example.com` with your real Cloudflare domain, and set `JELLYFIN_PUBLIC_URL=https://watch.example.com` in the repo-level `.env`.
+
+Jellyseerr should continue to use internal URLs for app integrations:
+
+- Jellyfin: `http://jellyfin:8096`
+- Sonarr: `http://sonarr:8989`
+- Radarr: `http://radarr:7878`
 
 ## First-Run Configuration
 
