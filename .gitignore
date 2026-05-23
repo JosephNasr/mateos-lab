@@ -34,3 +34,7 @@ portainer/data/
 
 # Agents
 .codex
+
+# Python generated files
+**/__pycache__/
+*.py[cod]
