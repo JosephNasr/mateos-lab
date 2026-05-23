@@ -1,15 +1,19 @@
-- id: '1767562801807'
-  alias: Toggle Lounge Lights
+- id: '1779573953376'
+  alias: Lamps on Sunset
   description: ''
   triggers:
-  - trigger: event
-    event_type: ''
+  - trigger: sun
+    event: sunset
+    offset: 0
   conditions: []
   actions:
-  - action: light.toggle
+  - action: light.turn_on
     metadata: {}
     target:
-      area_id: living_room
+      device_id:
+      - b91791e9672f2f44a25595059f2e5761
+      - 872530f1d7a4d513b24b9ebecdf68fdc
     data:
-      brightness_pct: 10
+      transition: 10
+      color_temp_kelvin: 2829
   mode: single
