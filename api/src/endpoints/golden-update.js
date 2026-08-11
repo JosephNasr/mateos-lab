@@ -206,7 +206,7 @@ export function buildRoiTransaction(account, currentROI, goldPrice) {
         payee_name: "ROI",
         memo: `Automated: 1g * ${goldPrice}`,
         approved: true,
-        cleared: "cleared",
+        cleared: "reconciled",
         flag_color: "orange",
     };
 }
