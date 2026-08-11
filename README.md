@@ -11,7 +11,6 @@ This repository stores the Docker Compose projects that power the homelab. The r
 | `home_assistant` | `home_assistant` | `homeassistant`, `mosquitto` | Home automation hub plus a local MQTT broker for device integrations. |
 | `jellyfin` | `jellyfin` | `qbittorrent`, `jellyfin`, `jellyseerr`, `prowlarr`, `sonarr`, `radarr` | LAN-only media streaming, requests, automation, and downloads. |
 | `n8n` | `n8n` | `n8n` | Workflow automation service backed by a persistent SQLite data volume. |
-| `paperless` | `paperless` | `webserver`, `db`, `broker`, `gotenberg`, `tika` | Document ingestion, OCR, and search stack. |
 | `portainer` | `portainer` | `portainer` | Docker management UI for the homelab. |
 
 The Jellyfin stack intentionally excludes LAN file sharing; media access is handled through Jellyfin and the automation apps.
@@ -27,7 +26,6 @@ docker network create web
 ```
 
 - Keep stack-specific config files in place where required:
-  - `paperless/docker-compose.env`
   - `home_assistant/ha/config/*`
   - `home_assistant/mosquitto/config/mosquitto.conf`
   - `cloudflared/cloudflared/*`
@@ -54,7 +52,7 @@ Plain `make` still defaults to `make up`.
 | `make logs STACK=api` | Streams logs for one stack. Optional: `SERVICE=api` and `TAIL=200`. |
 | `make config STACK=api` | Renders the merged Compose config for inspection. |
 
-`STACK` must match one of: `api`, `cloudflared`, `home_assistant`, `jellyfin`, `n8n`, `paperless`, `portainer`.
+`STACK` must match one of: `api`, `cloudflared`, `home_assistant`, `jellyfin`, `n8n`, `portainer`.
 
 ## When To Use `make` vs Direct Compose Commands
 

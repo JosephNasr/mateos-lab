@@ -8,12 +8,6 @@
 !.env.example
 !**/.env.example
 
-# Paperless deployment-local env file.
-docker-compose.env
-**/docker-compose.env
-!docker-compose.env.example
-!**/docker-compose.env.example
-
 # Dependency installs and runtime/service data.
 **/node_modules/
 home_assistant/ha/config/.storage/
