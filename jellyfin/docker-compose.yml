@@ -2,7 +2,7 @@
 #
 # Services:
 # - Jellyfin: media streaming
-# - Jellyseerr: media requests
+# - Seerr: media requests
 # - Prowlarr: indexer manager
 # - Sonarr: TV automation
 # - Radarr: movie automation
@@ -53,14 +53,15 @@ services:
       - plex_net
       - web
 
-  jellyseerr:
-    image: fallenbagel/jellyseerr:latest
-    container_name: jellyseerr
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    init: true
+    container_name: seerr
     environment:
       - TZ=${TIMEZONE}
       - LOG_LEVEL=info
     volumes:
-      - ${APPDATA_DIR}/jellyseerr:/app/config
+      - ${APPDATA_DIR}/seerr:/app/config
     ports:
       - "5055:5055"
     restart: unless-stopped
@@ -95,6 +96,9 @@ services:
       - UMASK=${UMASK}
     volumes:
       - ${APPDATA_DIR}/sonarr:/config
+      # Common mount for hardlinks: use /data/media/tv and /data/downloads in Sonarr.
+      - ${STORAGE_ROOT:-/srv}:/data
+      # Legacy mounts retained during the application-settings transition.
       - ${TV_DIR}:/tv
       - ${DOWNLOADS_DIR}:/downloads
     ports:
@@ -115,6 +119,9 @@ services:
       - UMASK=${UMASK}
     volumes:
       - ${APPDATA_DIR}/radarr:/config
+      # Common mount for hardlinks: use /data/media/movies and /data/downloads in Radarr.
+      - ${STORAGE_ROOT:-/srv}:/data
+      # Legacy mounts retained during the application-settings transition.
       - ${MOVIES_DIR}:/movies
       - ${DOWNLOADS_DIR}:/downloads
     ports:
