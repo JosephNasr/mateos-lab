@@ -9,7 +9,7 @@ This repository stores the Docker Compose projects that power the homelab. The r
 | `api` | `api` | `api` | Custom Node/Express automation API for YNAB gold tracking, SMS parsing, and weather helpers. |
 | `cloudflared` | `cloudflared` | `cloudflared` | Cloudflare Tunnel that exposes internal services on the shared `web` network. |
 | `home_assistant` | `home_assistant` | `homeassistant`, `mosquitto` | Home automation hub plus a local MQTT broker for device integrations. |
-| `jellyfin` | `jellyfin` | `qbittorrent`, `jellyfin`, `seerr`, `prowlarr`, `sonarr`, `radarr` | LAN-only media streaming, requests, automation, and downloads. |
+| `jellyfin` | `jellyfin` | `qbittorrent`, `jellyfin`, `seerr`, `prowlarr`, `sonarr`, `radarr`, `bazarr` | LAN-only media streaming, requests, download automation, and automatic subtitles. |
 | `n8n` | `n8n` | `n8n` | Workflow automation service backed by a persistent SQLite data volume. |
 | `portainer` | `portainer` | `portainer` | Docker management UI for the homelab. |
 

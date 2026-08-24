@@ -7,6 +7,7 @@ Full media stack:
 - Prowlarr for indexer management
 - Sonarr for TV automation
 - Radarr for movie automation
+- Bazarr for automatic subtitles
 - qBittorrent for downloads
 
 ## Host Setup
@@ -14,7 +15,7 @@ Full media stack:
 Create the storage and app config folders on the Docker host:
 
 ```bash
-sudo mkdir -p /srv/media/{movies,tv} /srv/downloads/{complete,incomplete} /srv/appdata/{qbittorrent,prowlarr,sonarr,radarr,seerr,jellyfin}
+sudo mkdir -p /srv/media/{movies,tv} /srv/downloads/{complete,incomplete} /srv/appdata/{qbittorrent,prowlarr,sonarr,radarr,bazarr,seerr,jellyfin}
 sudo chown -R "$(id -u):$(id -g)" /srv/media /srv/downloads /srv/appdata
 ```
 
@@ -55,6 +56,7 @@ make ps STACK=jellyfin
 - Prowlarr: `http://PI_IP:9696`
 - Sonarr: `http://PI_IP:8989`
 - Radarr: `http://PI_IP:7878`
+- Bazarr: `http://PI_IP:6767`
 - qBittorrent: `http://PI_IP:8080`
 
 ## Cloudflare Tunnel Routes
@@ -99,6 +101,30 @@ Radarr:
 - Download client: qBittorrent at `http://qbittorrent:8080`
 - Category: `movies`
 
+Bazarr:
+
+- Add Sonarr at `http://sonarr:8989` and Radarr at `http://radarr:7878`, using each application's API key.
+- In **Settings > Languages**, add `Arabic` as an enabled subtitle language, then create an `Arabic` language profile with normal subtitles (not forced or hearing-impaired unless wanted).
+- Assign that profile as the default for both series and movies.
+- In **Settings > Providers**, add subtitle-provider accounts (OpenSubtitles is a common starting point). Use more than one provider if you want better coverage.
+- When Sonarr/Radarr have been moved to the `/data/media/...` paths below, configure Bazarr against those same paths; do not add Bazarr path mappings. Its Compose mounts already match them.
+
+### Download Arabic Subtitles for Existing Media
+
+After Bazarr is connected to Sonarr and Radarr, backfill the current library as follows:
+
+1. Open **Settings > Languages**. Add `Arabic` to the enabled subtitle languages, then create and save an `Arabic` language profile with normal subtitles. Only enable forced or hearing-impaired subtitles if those are specifically wanted.
+2. Open **Settings > Providers**. Add and test at least one subtitle-provider account. Add another provider if Arabic coverage is sparse instead of lowering the minimum score immediately.
+3. Open **Series > Mass Edit**, select every series, assign the `Arabic` language profile, and save.
+4. Open **Movies > Mass Edit**, select every movie, assign the same profile, and save.
+5. From the Series and Movies pages, run Bazarr's search for missing/wanted subtitles. Bazarr queues searches for media without an Arabic subtitle and saves matches alongside the video files.
+
+Keep the Arabic profile as the default for series and movies so future Sonarr/Radarr imports are searched automatically.
+
+Jellyfin:
+
+- In each user's playback/subtitle preferences, set the preferred subtitle language to `Arabic`. Jellyfin will automatically select Arabic when Bazarr has downloaded it.
+
 ## Hardlink Imports (Sonarr and Radarr)
 
 Sonarr and Radarr need their download and library paths beneath the same container mount to create hardlinks. The Compose file provides that common mount as `/data` (host `${STORAGE_ROOT:-/srv}`). The existing `/tv`, `/movies`, and `/downloads` paths remain temporarily for compatibility, but imports will continue to copy until you make the following application changes.
@@ -116,6 +142,8 @@ In Radarr:
 - Add the same qBittorrent Remote Path Mapping: remote path `/downloads`, local path `/data/downloads`.
 
 Do this before importing new downloads. Existing copies stay separate until you remove the corresponding completed torrent files after their seeding period; do not remove media-library files from the filesystem manually.
+
+Bazarr has the same `/data`, `/tv`, and `/movies` mounts as Sonarr and Radarr. It writes external subtitle files alongside the media; Jellyfin discovers them on its scheduled scan or a manual library scan.
 
 Prowlarr:
 

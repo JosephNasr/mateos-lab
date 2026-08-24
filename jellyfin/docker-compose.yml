@@ -6,6 +6,7 @@
 # - Prowlarr: indexer manager
 # - Sonarr: TV automation
 # - Radarr: movie automation
+# - Bazarr: subtitle automation
 # - qBittorrent: torrent client
 
 services:
@@ -131,6 +132,31 @@ services:
       - plex_net
     depends_on:
       - qbittorrent
+
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TIMEZONE}
+      - UMASK=${UMASK}
+    volumes:
+      - ${APPDATA_DIR}/bazarr:/config
+      # Keep these paths identical to Sonarr and Radarr so Bazarr can write
+      # subtitle files next to the imported media.
+      - ${STORAGE_ROOT:-/srv}:/data
+      # Legacy mounts retained while Sonarr/Radarr still use /tv and /movies.
+      - ${TV_DIR}:/tv
+      - ${MOVIES_DIR}:/movies
+    ports:
+      - "6767:6767"
+    restart: unless-stopped
+    networks:
+      - plex_net
+    depends_on:
+      - sonarr
+      - radarr
 
 networks:
   plex_net:
