@@ -150,6 +150,11 @@ Prowlarr:
 - Add Sonarr app: `http://sonarr:8989`
 - Add Radarr app: `http://radarr:7878`
 - Use the API keys from each app's settings page.
+- For Cloudflare-protected indexers (e.g. 1337x, EZTV), add FlareSolverr as an indexer proxy: **Settings > Indexer Proxies > Add > FlareSolverr**
+  - Host: `http://flaresolverr:8191/`
+  - Tags: give it a tag, e.g. `flaresolverr`
+  - Test, then Save
+  - For each Cloudflare-protected indexer, add that same tag in the indexer's own Tags field, then Test. A blank tag on the proxy does not reliably apply it to indexers — always set one explicitly on both sides.
 
 Seerr:
 
