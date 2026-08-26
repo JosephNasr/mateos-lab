@@ -54,6 +54,18 @@ services:
       - plex_net
       - web
 
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    environment:
+      - LOG_LEVEL=info
+    ports:
+      - "8191:8191"
+    restart: unless-stopped
+    networks:
+      - plex_net
+      - web
+
   seerr:
     image: ghcr.io/seerr-team/seerr:latest
     init: true
