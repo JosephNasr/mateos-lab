@@ -12,6 +12,7 @@
 **/node_modules/
 home_assistant/ha/config/.storage/
 home_assistant/ha/config/.cloud/
+home_assistant/ha/config/.cache/
 home_assistant/ha/config/deps/
 home_assistant/ha/config/tts/
 home_assistant/ha/config/home-assistant*.log*
@@ -19,6 +20,7 @@ home_assistant/ha/config/home-assistant_v2.db*
 home_assistant/ha/config/.ha_run.lock
 home_assistant/ha/config/.HA_VERSION
 home_assistant/ha/config/secrets.yaml
+home_assistant/ha/config/wget-log*
 home_assistant/ha/config/.storage/*adbkey*
 home_assistant/ha/config/.storage/*.pem
 home_assistant/ha/config/.storage/*.pub
