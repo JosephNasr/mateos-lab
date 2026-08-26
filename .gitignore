@@ -15,6 +15,7 @@ home_assistant/ha/config/.cloud/
 home_assistant/ha/config/.cache/
 home_assistant/ha/config/deps/
 home_assistant/ha/config/tts/
+home_assistant/ha/config/custom_components/hacs/
 home_assistant/ha/config/home-assistant*.log*
 home_assistant/ha/config/home-assistant_v2.db*
 home_assistant/ha/config/.ha_run.lock
