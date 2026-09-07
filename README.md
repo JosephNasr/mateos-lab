@@ -12,6 +12,7 @@ This repository stores the Docker Compose projects that power the homelab. The r
 | `jellyfin` | `jellyfin` | `qbittorrent`, `jellyfin`, `seerr`, `prowlarr`, `sonarr`, `radarr`, `bazarr` | LAN-only media streaming, requests, download automation, and automatic subtitles. |
 | `n8n` | `n8n` | `n8n` | Workflow automation service backed by a persistent SQLite data volume. |
 | `portainer` | `portainer` | `portainer` | Docker management UI for the homelab. |
+| `twingate` | `twingate` | `twingate-smooth-scorpion` | Twingate Connector that provides private-network access to resources configured in Twingate. |
 
 The Jellyfin stack intentionally excludes LAN file sharing; media access is handled through Jellyfin and the automation apps.
 
@@ -52,7 +53,7 @@ Plain `make` still defaults to `make up`.
 | `make logs STACK=api` | Streams logs for one stack. Optional: `SERVICE=api` and `TAIL=200`. |
 | `make config STACK=api` | Renders the merged Compose config for inspection. |
 
-`STACK` must match one of: `api`, `cloudflared`, `home_assistant`, `jellyfin`, `n8n`, `portainer`.
+`STACK` must match one of: `api`, `cloudflared`, `home_assistant`, `jellyfin`, `n8n`, `portainer`, `twingate`.
 
 ## When To Use `make` vs Direct Compose Commands
 

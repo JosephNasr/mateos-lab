@@ -4,7 +4,8 @@ COMPOSES := \
   n8n/docker-compose.yml \
   home_assistant/docker-compose.yml \
   portainer/docker-compose.yml \
-  jellyfin/docker-compose.yml
+  jellyfin/docker-compose.yml \
+  twingate/docker-compose.yml
 
 STACK_NAMES := $(sort $(foreach c,$(COMPOSES),$(notdir $(patsubst %/,%,$(dir $(c))))))
 STACK ?=
