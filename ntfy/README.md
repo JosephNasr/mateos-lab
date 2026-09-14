@@ -10,7 +10,7 @@ Add the externally visible URL to the repository root `.env`:
 NTFY_BASE_URL=https://ntfy.example.com
 ```
 
-Use the exact URL that the mobile app and integrations will use. HTTPS is required before sending credentials over the internet.
+Use the exact public URL that the mobile app and browser will use. HTTPS is required before sending credentials over the internet. Containers attached to the shared `web` network should publish through the internal `http://ntfy:80` address described below.
 
 The external Docker network must already exist:
 
@@ -66,6 +66,18 @@ docker compose \
 ```
 
 Store the returned token in the root `.env` or in the application's own protected configuration when an integration needs it. Never commit tokens.
+
+## Internal Notification Endpoints
+
+Homelab containers on the shared `web` network should send notifications directly to ntfy. This keeps credentials and message content inside Docker and allows notifications to be accepted and cached even if the internet connection or Cloudflare Tunnel is unavailable.
+
+| Application | Server or endpoint | Topic |
+| --- | --- | --- |
+| Uptime Kuma | `http://ntfy:80` | `critical` |
+| Seerr | `http://ntfy:80` | `media` |
+| Kopia webhook | `http://ntfy:80/critical` | Included in endpoint |
+
+Keep each application's ntfy credentials or bearer token configured as before. The public `NTFY_BASE_URL` must remain the external HTTPS URL because ntfy uses it for phone access and generated links.
 
 ## Test
 

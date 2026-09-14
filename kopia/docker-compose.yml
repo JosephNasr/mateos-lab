@@ -38,11 +38,20 @@ services:
       # n8n uses a named Docker volume
       - n8n_data:/sources/n8n:ro
 
+    # Allows direct delivery to ntfy at http://ntfy:80 without depending on
+    # the internet or routing notifications through Cloudflare.
+    networks:
+      - web
+
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
+
+networks:
+  web:
+    external: true
 
 volumes:
   n8n_data:
