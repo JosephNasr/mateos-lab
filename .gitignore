@@ -45,6 +45,9 @@ adguard/work/
 # ntfy authentication database, message cache, and attachments.
 ntfy/data/
 
+# Diun image-manifest database.
+diun/data/
+
 # Agents
 .codex
 

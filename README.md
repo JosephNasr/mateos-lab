@@ -9,6 +9,7 @@ This repository stores the Docker Compose projects that power the homelab. The r
 | `api` | `api` | `api` | Custom Node/Express automation API for YNAB gold tracking, SMS parsing, and weather helpers. |
 | `adguard` | `adguard` | `adguardhome` | Network-wide DNS filtering and local DNS administration through AdGuard Home. |
 | `cloudflared` | `cloudflared` | `cloudflared` | Cloudflare Tunnel that exposes internal services on the shared `web` network. |
+| `diun` | `diun` | `diun`, `diun-socket-proxy` | Image-update notifications through ntfy, with read-only Docker API access. |
 | `home_assistant` | `home_assistant` | `homeassistant`, `mosquitto` | Home automation hub plus a local MQTT broker for device integrations. |
 | `jellyfin` | `jellyfin` | `qbittorrent`, `jellyfin`, `flaresolverr`, `seerr`, `prowlarr`, `sonarr`, `radarr`, `bazarr` | LAN-only media streaming, requests, download automation, automatic subtitles, and Cloudflare-protected indexer access through FlareSolverr. |
 | `kopia` | `kopia` | `kopia` | Backup server for the Compose projects, `/srv/appdata`, and the `n8n_data` volume. |
@@ -49,7 +50,8 @@ Plain `make` still defaults to `make up`.
 | `make stacks` | Prints the supported stack names. |
 | `make up` | Starts every stack with `up -d --build --remove-orphans`. This rebuilds local images such as `api`, but it does not pull newer remote images first. |
 | `make up STACK=api` | Starts only the `api` stack with the same flags. |
-| `make pull STACK=n8n` | Pulls newer upstream images for one stack before you restart or bring it back up. Omit `STACK` to pull every stack in sequence. |
+| `make update STACK=n8n` | Pulls newer upstream images, then recreates the selected stack. Omit `STACK` to update every stack in sequence. |
+| `make pull STACK=n8n` | Pulls newer upstream images without recreating containers. Omit `STACK` to pull every stack in sequence. |
 | `make build STACK=api` | Builds local images for one stack without starting it. |
 | `make stop` | Stops every stack without removing containers. Add `STACK=<name>` to scope it. |
 | `make down STACK=api` | Removes one stack's containers and Compose-managed networks. Omit `STACK` to apply it to every stack. |
@@ -58,8 +60,9 @@ Plain `make` still defaults to `make up`.
 | `make ps` | Shows container status for every stack in sequence. Add `STACK=<name>` to focus on one stack. |
 | `make logs STACK=api` | Streams logs for one stack. Optional: `SERVICE=api` and `TAIL=200`. |
 | `make config STACK=api` | Renders the merged Compose config for inspection. |
+| `make validate` | Validates every Compose file. Add `STACK=<name>` to validate one stack. |
 
-`STACK` must match one of: `adguard`, `api`, `cloudflared`, `home_assistant`, `jellyfin`, `kopia`, `n8n`, `ntfy`, `portainer`, `twingate`, `uptime_kuma`.
+`STACK` must match one of: `adguard`, `api`, `cloudflared`, `diun`, `home_assistant`, `jellyfin`, `kopia`, `n8n`, `ntfy`, `portainer`, `twingate`, `uptime_kuma`.
 
 ## When To Use `make` vs Direct Compose Commands
 
@@ -68,7 +71,7 @@ Use the root `makefile` when:
 - you want to reconcile the whole homelab in one command
 - you want a consistent command format for either one stack or all stacks
 - you changed the local `api` code and want shorthand like `make up STACK=api`
-- you need to pull a newer upstream image for one stack with `make pull STACK=<name>`
+- you want to pull and recreate one stack with `make update STACK=<name>`
 
 Use direct `docker compose` commands when:
 
@@ -93,8 +96,7 @@ make up STACK=api
 ```
 
 ```bash
-make pull STACK=n8n
-make up STACK=n8n
+make update STACK=n8n
 ```
 
 ```bash
@@ -127,6 +129,19 @@ Manage it with the root shortcuts:
 ```bash
 make up STACK=ntfy
 make logs STACK=ntfy SERVICE=ntfy
+```
+
+## Diun
+
+Diun checks the images used by running containers every 12 hours and publishes update notifications to the private ntfy server. It never pulls images or restarts containers; review an update and apply it deliberately with `make update STACK=<name>`.
+
+The Docker provider connects through a dedicated read-only socket proxy. DIUN can list and inspect containers, but it cannot create, stop, or modify them. Moving tags such as `latest` are monitored automatically. Exact-version services use narrow per-container tag filters so DIUN reports only the newest stable-looking release instead of scanning every repository tag indefinitely.
+
+Before starting DIUN, create its write-only ntfy user and token, then add `DIUN_NTFY_TOKEN` to the root `.env`. See the [DIUN runbook](diun/README.md) for the exact commands, notification test, tag-monitoring behavior, and update workflow.
+
+```bash
+make up STACK=diun
+make logs STACK=diun SERVICE=diun
 ```
 
 ## Kopia

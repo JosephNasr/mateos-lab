@@ -6,6 +6,13 @@ services:
     image: adguard/adguardhome:v0.107.76
     container_name: adguardhome
     restart: unless-stopped
+
+    labels:
+      diun.watch_repo: "true"
+      diun.sort_tags: semver
+      diun.include_tags: '^v0\.[0-9]+\.[0-9]+$'
+      diun.max_tags: "1"
+
     user: "${ADGUARD_UID:-1000}:${ADGUARD_GID:-1000}"
 
     ports:
