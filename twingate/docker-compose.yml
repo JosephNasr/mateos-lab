@@ -1,3 +1,5 @@
+name: twingate
+
 services:
   twingate:
     image: twingate/connector:1

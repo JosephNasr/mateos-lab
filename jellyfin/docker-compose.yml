@@ -9,6 +9,8 @@
 # - Bazarr: subtitle automation
 # - qBittorrent: torrent client
 
+name: jellyfin
+
 services:
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest

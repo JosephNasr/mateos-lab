@@ -5,6 +5,8 @@
 # - Good baseline permissions for hardware/network integrations
 # - Optional local-first building blocks (MQTT now, Zigbee later)
 
+name: home_assistant
+
 services:
   homeassistant:
     container_name: homeassistant

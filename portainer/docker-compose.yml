@@ -1,3 +1,5 @@
+name: portainer
+
 services:
   portainer:
     # Update this exact LTS release deliberately, then run `make update STACK=portainer`.

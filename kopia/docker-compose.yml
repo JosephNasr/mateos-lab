@@ -1,3 +1,5 @@
+name: kopia
+
 services:
   kopia:
     image: kopia/kopia:0.23.1

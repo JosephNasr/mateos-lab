@@ -1,3 +1,5 @@
+name: adguard
+
 services:
   adguardhome:
     # Update this exact release deliberately, then run `make update STACK=adguard`.
