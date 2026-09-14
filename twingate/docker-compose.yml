@@ -1,7 +1,7 @@
 services:
   twingate:
     image: twingate/connector:1
-    container_name: twingate-smooth-scorpion
+    container_name: twingate
     restart: unless-stopped
 
     environment:

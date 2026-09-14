@@ -246,18 +246,24 @@ Open:
 Settings -> DNS settings -> Upstream DNS servers
 ```
 
-Example Quad9 upstreams:
+The current deployment uses Quad9's standard secure service over DNS-over-TLS
+(DoT), with Cloudflare DNS-over-HTTPS (DoH) as an availability fallback:
 
-```text
-9.9.9.9
-149.112.112.112
+```yaml
+upstream_dns:
+  - tls://dns.quad9.net
+fallback_dns:
+  - https://cloudflare-dns.com/dns-query
 ```
 
-Preferred encrypted upstream:
+`dns.quad9.net` is Quad9's privacy-focused service with malware and phishing
+domain blocking.  Do **not** substitute `dns10.quad9.net` unless that blocking
+is intentionally unwanted: the `dns10` service does not provide it.
 
-```text
-https://dns.quad9.net/dns-query
-```
+DoT encrypts traffic between AdGuard Home and Quad9 on TCP port 853.  LAN
+clients continue to query AdGuard on port 53; that internal hop is unchanged.
+Cloudflare is contacted only if the Quad9 primary cannot answer, so normal
+queries remain with Quad9.
 
 The resulting path is:
 
@@ -268,9 +274,21 @@ Client
   v
 AdGuard Home
   |
-  | DNS-over-HTTPS
+  | DNS-over-TLS (encrypted)
   v
 Quad9
+```
+
+Verify that AdGuard is using Quad9 and DoT:
+
+```bash
+dig @192.168.18.2 +short txt proto.on.quad9.net
+```
+
+Expected result:
+
+```text
+"dot"
 ```
 
 ---
