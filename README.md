@@ -15,7 +15,6 @@ This repository stores the Docker Compose projects that power the homelab. The r
 | `kopia` | `kopia` | `kopia` | Backup server for the Compose projects, `/srv/appdata`, and the `n8n_data` volume. |
 | `n8n` | `n8n` | `n8n` | Workflow automation service backed by a persistent SQLite data volume. |
 | `ntfy` | `ntfy` | `ntfy` | Private push-notification server for homelab alerts and automation events. |
-| `portainer` | `portainer` | `portainer` | Docker management UI for the homelab. |
 | `twingate` | `twingate` | `twingate-smooth-scorpion` | Twingate Connector that provides private-network access to resources configured in Twingate. |
 | `uptime_kuma` | `uptime_kuma` | `uptime-kuma` | Uptime monitoring and status dashboard. |
 
@@ -62,7 +61,7 @@ Plain `make` still defaults to `make up`.
 | `make config STACK=api` | Renders the merged Compose config for inspection. |
 | `make validate` | Validates every Compose file. Add `STACK=<name>` to validate one stack. |
 
-`STACK` must match one of: `adguard`, `api`, `cloudflared`, `diun`, `home_assistant`, `jellyfin`, `kopia`, `n8n`, `ntfy`, `portainer`, `twingate`, `uptime_kuma`.
+`STACK` must match one of: `adguard`, `api`, `cloudflared`, `diun`, `home_assistant`, `jellyfin`, `kopia`, `n8n`, `ntfy`, `twingate`, `uptime_kuma`.
 
 ## When To Use `make` vs Direct Compose Commands
 

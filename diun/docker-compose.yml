@@ -9,6 +9,7 @@ services:
     environment:
       CONTAINERS: "1"
       EVENTS: "0"
+      IMAGES: "1"
       PING: "1"
       POST: "0"
       VERSION: "1"

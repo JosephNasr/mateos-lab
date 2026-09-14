@@ -87,7 +87,6 @@ An exact image tag such as `v2.28.0` normally changes only if its digest is rebu
 | DIUN | `x.y.z` |
 | ntfy | `v2.x.y` |
 | AdGuard Home | `v0.x.y` |
-| Portainer | `2.x.y` |
 | Home Assistant | `YYYY.x.y` |
 
 Each rule uses semantic-version sorting and `diun.max_tags=1`, so DIUN tracks only the newest matching release. Pre-release, development, architecture-specific, and unrelated tags are excluded by the regular expressions.

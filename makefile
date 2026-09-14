@@ -5,7 +5,6 @@ COMPOSES := \
   ntfy/docker-compose.yml \
   diun/docker-compose.yml \
   home_assistant/docker-compose.yml \
-  portainer/docker-compose.yml \
   jellyfin/docker-compose.yml \
   twingate/docker-compose.yml \
   adguard/docker-compose.yml \
