@@ -7,6 +7,7 @@ This repository stores the Docker Compose projects that power the homelab. The r
 | Stack | Compose project | Active containers | Purpose |
 | --- | --- | --- | --- |
 | `api` | `api` | `api` | Custom Node/Express automation API for YNAB gold tracking, SMS parsing, and weather helpers. |
+| `adguard` | `adguard` | `adguardhome` | Network-wide DNS filtering and local DNS administration through AdGuard Home. |
 | `cloudflared` | `cloudflared` | `cloudflared` | Cloudflare Tunnel that exposes internal services on the shared `web` network. |
 | `home_assistant` | `home_assistant` | `homeassistant`, `mosquitto` | Home automation hub plus a local MQTT broker for device integrations. |
 | `jellyfin` | `jellyfin` | `qbittorrent`, `jellyfin`, `seerr`, `prowlarr`, `sonarr`, `radarr`, `bazarr` | LAN-only media streaming, requests, download automation, and automatic subtitles. |
@@ -30,6 +31,7 @@ docker network create web
   - `home_assistant/ha/config/*`
   - `home_assistant/mosquitto/config/mosquitto.conf`
   - `cloudflared/cloudflared/*`
+  - `adguard/conf/*` and `adguard/work/*` (AdGuard Home configuration and runtime state)
 
 ## Using The Root Makefile
 
@@ -53,7 +55,7 @@ Plain `make` still defaults to `make up`.
 | `make logs STACK=api` | Streams logs for one stack. Optional: `SERVICE=api` and `TAIL=200`. |
 | `make config STACK=api` | Renders the merged Compose config for inspection. |
 
-`STACK` must match one of: `api`, `cloudflared`, `home_assistant`, `jellyfin`, `n8n`, `portainer`, `twingate`.
+`STACK` must match one of: `adguard`, `api`, `cloudflared`, `home_assistant`, `jellyfin`, `n8n`, `portainer`, `twingate`.
 
 ## When To Use `make` vs Direct Compose Commands
 
@@ -94,3 +96,18 @@ make up STACK=n8n
 ```bash
 make logs STACK=api SERVICE=api TAIL=200
 ```
+
+## AdGuard Home
+
+The AdGuard Home stack publishes DNS on the host's port `53` over both TCP and UDP, and its administration interface on port `8081`. Open `http://<host-ip>:8081` from the LAN to manage it. Point clients or the router's DHCP DNS setting to the host's LAN IP to use filtering.
+
+Before starting it, make sure no host service is already listening on port `53` (for example, a local DNS resolver). The host firewall must also allow LAN clients to reach TCP/UDP `53` and TCP `8081` as appropriate.
+
+Manage the stack with the root shortcuts:
+
+```bash
+make up STACK=adguard
+make logs STACK=adguard SERVICE=adguardhome
+```
+
+AdGuard Home stores durable state in `adguard/conf` and `adguard/work`. Back up both directories together before moving or rebuilding the service. Its initial setup port (`3000`) is intentionally not published; the existing setup uses the administration interface on port `8081`.
