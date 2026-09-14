@@ -1,0 +1,104 @@
+name: diun
+
+services:
+  socket-proxy:
+    image: lscr.io/linuxserver/socket-proxy:latest
+    container_name: diun-socket-proxy
+    restart: unless-stopped
+
+    environment:
+      CONTAINERS: "1"
+      EVENTS: "0"
+      IMAGES: "1"
+      PING: "1"
+      POST: "0"
+      VERSION: "1"
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+    read_only: true
+
+    tmpfs:
+      - /run
+
+    networks:
+      - docker_proxy
+
+    security_opt:
+      - no-new-privileges:true
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  diun:
+    # Update this exact release deliberately, then run `make update STACK=diun`.
+    image: crazymax/diun:4.33.0
+    container_name: diun
+    hostname: mateos-lab
+    command: serve
+    restart: unless-stopped
+    init: true
+
+    depends_on:
+      - socket-proxy
+
+    environment:
+      TZ: ${TIMEZONE}
+      LOG_LEVEL: info
+      LOG_JSON: "false"
+
+      DIUN_DB_PATH: /data/diun.db
+      DIUN_WATCH_SCHEDULE: "0 */12 * * *"
+      DIUN_WATCH_JITTER: 30s
+      DIUN_WATCH_FIRSTCHECKNOTIF: "false"
+      DIUN_WATCH_RUNONSTARTUP: "true"
+
+      DIUN_PROVIDERS_DOCKER: "true"
+      DIUN_PROVIDERS_DOCKER_ENDPOINT: tcp://socket-proxy:2375
+      DIUN_PROVIDERS_DOCKER_WATCHBYDEFAULT: "true"
+      DIUN_PROVIDERS_DOCKER_WATCHSTOPPED: "false"
+
+      DIUN_NOTIF_NTFY_ENDPOINT: http://ntfy:80
+      DIUN_NOTIF_NTFY_TOKEN: ${DIUN_NTFY_TOKEN:?Set DIUN_NTFY_TOKEN in the root .env}
+      DIUN_NOTIF_NTFY_TOPIC: ${DIUN_NTFY_TOPIC:-updates}
+      DIUN_NOTIF_NTFY_PRIORITY: "3"
+
+    volumes:
+      - ./data:/data
+
+    networks:
+      - docker_proxy
+      - web
+
+    labels:
+      diun.watch_repo: "true"
+      diun.sort_tags: semver
+      diun.include_tags: '^[0-9]+\.[0-9]+\.[0-9]+$'
+      diun.max_tags: "1"
+
+    healthcheck:
+      test: ["CMD", "diun", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+    security_opt:
+      - no-new-privileges:true
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  docker_proxy:
+    internal: true
+
+  web:
+    external: true
