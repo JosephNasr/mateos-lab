@@ -35,3 +35,6 @@ portainer/data/
 # Python generated files
 **/__pycache__/
 *.py[cod]
+
+# Backups
+backups/
