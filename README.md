@@ -13,6 +13,7 @@ This repository stores the Docker Compose projects that power the homelab. The r
 | `jellyfin` | `jellyfin` | `qbittorrent`, `jellyfin`, `flaresolverr`, `seerr`, `prowlarr`, `sonarr`, `radarr`, `bazarr` | LAN-only media streaming, requests, download automation, automatic subtitles, and Cloudflare-protected indexer access through FlareSolverr. |
 | `kopia` | `kopia` | `kopia` | Backup server for the Compose projects, `/srv/appdata`, and the `n8n_data` volume. |
 | `n8n` | `n8n` | `n8n` | Workflow automation service backed by a persistent SQLite data volume. |
+| `ntfy` | `ntfy` | `ntfy` | Private push-notification server for homelab alerts and automation events. |
 | `portainer` | `portainer` | `portainer` | Docker management UI for the homelab. |
 | `twingate` | `twingate` | `twingate-smooth-scorpion` | Twingate Connector that provides private-network access to resources configured in Twingate. |
 | `uptime_kuma` | `uptime_kuma` | `uptime-kuma` | Uptime monitoring and status dashboard. |
@@ -58,7 +59,7 @@ Plain `make` still defaults to `make up`.
 | `make logs STACK=api` | Streams logs for one stack. Optional: `SERVICE=api` and `TAIL=200`. |
 | `make config STACK=api` | Renders the merged Compose config for inspection. |
 
-`STACK` must match one of: `adguard`, `api`, `cloudflared`, `home_assistant`, `jellyfin`, `kopia`, `n8n`, `portainer`, `twingate`, `uptime_kuma`.
+`STACK` must match one of: `adguard`, `api`, `cloudflared`, `home_assistant`, `jellyfin`, `kopia`, `n8n`, `ntfy`, `portainer`, `twingate`, `uptime_kuma`.
 
 ## When To Use `make` vs Direct Compose Commands
 
@@ -114,6 +115,19 @@ make logs STACK=adguard SERVICE=adguardhome
 ```
 
 AdGuard Home stores durable state in `adguard/conf` and `adguard/work`. Back up both directories together before moving or rebuilding the service. Its initial setup port (`3000`) is intentionally not published; the existing setup uses the administration interface on port `8081`.
+
+## ntfy
+
+ntfy exposes its LAN web UI and API at `http://<host-ip>:8082` and joins the external `web` network so Cloudflared can reach it as `http://ntfy:80`. Set `NTFY_BASE_URL` in the root `.env` to the exact HTTPS URL clients will use.
+
+The server is private by default: anonymous users cannot read or publish to topics, and the web app requires login. After the first startup, create the initial administrator from the container CLI. See the [ntfy runbook](ntfy/README.md) for account creation, Cloudflare Tunnel setup, phone configuration, and a test notification.
+
+Manage it with the root shortcuts:
+
+```bash
+make up STACK=ntfy
+make logs STACK=ntfy SERVICE=ntfy
+```
 
 ## Kopia
 
