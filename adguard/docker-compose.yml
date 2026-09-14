@@ -1,6 +1,7 @@
 services:
   adguardhome:
-    image: adguard/adguardhome:latest
+    # Update this exact release deliberately, then run `make update STACK=adguard`.
+    image: adguard/adguardhome:v0.107.76
     container_name: adguardhome
     restart: unless-stopped
     user: "${ADGUARD_UID:-1000}:${ADGUARD_GID:-1000}"

@@ -11,13 +11,8 @@
 # Dependency installs and runtime/service data.
 **/node_modules/
 
-# Docker-managed local service configuration and runtime data.  Keep portable
-# Compose manifests in Git; keep machine-specific application state out of it.
-**/config/
-**/conf/
-**/data/
-**/work/
-**/custom_components/
+# Docker-managed local service configuration and runtime data. Keep portable
+# configuration in Git; ignore only the machine-specific paths below.
 **/docker-compose.local.yml
 **/compose.local.yml
 

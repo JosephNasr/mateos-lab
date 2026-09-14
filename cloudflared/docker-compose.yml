@@ -4,7 +4,8 @@ services:
 
   cloudflared:
     container_name: cloudflared
-    image: cloudflare/cloudflared:latest
+    # Update this exact release deliberately, then run `make update STACK=cloudflared`.
+    image: cloudflare/cloudflared:2026.9.1
     restart: unless-stopped
     command: tunnel run
     extra_hosts:
