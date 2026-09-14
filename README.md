@@ -10,7 +10,7 @@ This repository stores the Docker Compose projects that power the homelab. The r
 | `adguard` | `adguard` | `adguardhome` | Network-wide DNS filtering and local DNS administration through AdGuard Home. |
 | `cloudflared` | `cloudflared` | `cloudflared` | Cloudflare Tunnel that exposes internal services on the shared `web` network. |
 | `home_assistant` | `home_assistant` | `homeassistant`, `mosquitto` | Home automation hub plus a local MQTT broker for device integrations. |
-| `jellyfin` | `jellyfin` | `qbittorrent`, `jellyfin`, `seerr`, `prowlarr`, `sonarr`, `radarr`, `bazarr` | LAN-only media streaming, requests, download automation, and automatic subtitles. |
+| `jellyfin` | `jellyfin` | `qbittorrent`, `jellyfin`, `flaresolverr`, `seerr`, `prowlarr`, `sonarr`, `radarr`, `bazarr` | LAN-only media streaming, requests, download automation, automatic subtitles, and Cloudflare-protected indexer access through FlareSolverr. |
 | `n8n` | `n8n` | `n8n` | Workflow automation service backed by a persistent SQLite data volume. |
 | `portainer` | `portainer` | `portainer` | Docker management UI for the homelab. |
 | `twingate` | `twingate` | `twingate-smooth-scorpion` | Twingate Connector that provides private-network access to resources configured in Twingate. |

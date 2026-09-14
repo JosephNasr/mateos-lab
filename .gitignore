@@ -35,6 +35,9 @@ home_assistant/mosquitto/data/
 home_assistant/mosquitto/log/
 portainer/data/
 
+# Uptime Kuma database, credentials, monitor history, and other runtime data.
+uptime_kuma/data/
+
 # AdGuard Home local configuration and runtime data.
 adguard/conf/AdGuardHome.yaml
 adguard/work/

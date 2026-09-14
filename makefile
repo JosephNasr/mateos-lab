@@ -6,7 +6,8 @@ COMPOSES := \
   portainer/docker-compose.yml \
   jellyfin/docker-compose.yml \
   twingate/docker-compose.yml \
-  adguard/docker-compose.yml
+  adguard/docker-compose.yml \
+  uptime_kuma/docker-compose.yml
 
 STACK_NAMES := $(sort $(foreach c,$(COMPOSES),$(notdir $(patsubst %/,%,$(dir $(c))))))
 STACK ?=

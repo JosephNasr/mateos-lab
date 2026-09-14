@@ -1,0 +1,57 @@
+services:
+  socket-proxy:
+    image: lscr.io/linuxserver/socket-proxy:latest
+    container_name: uptime-kuma-socket-proxy
+    restart: unless-stopped
+
+    environment:
+      CONTAINERS: "1"
+      INFO: "1"
+      VERSION: "1"
+      POST: "0"
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+    read_only: true
+
+    tmpfs:
+      - /run
+
+    networks:
+      - docker_proxy
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:2
+    container_name: uptime-kuma
+    restart: unless-stopped
+
+    depends_on:
+      - socket-proxy
+
+    ports:
+      - "3001:3001"
+
+    volumes:
+      - ./data:/app/data
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    networks:
+      - default
+      - docker_proxy
+      - web
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  docker_proxy:
+    internal: true
+
+  web:
+    external: true
