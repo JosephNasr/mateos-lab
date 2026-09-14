@@ -33,8 +33,6 @@ home_assistant/ha/config/.storage/*.pem
 home_assistant/ha/config/.storage/*.pub
 home_assistant/mosquitto/data/
 home_assistant/mosquitto/log/
-portainer/data/
-
 # Uptime Kuma database, credentials, monitor history, and other runtime data.
 uptime_kuma/data/
 
