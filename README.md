@@ -11,9 +11,11 @@ This repository stores the Docker Compose projects that power the homelab. The r
 | `cloudflared` | `cloudflared` | `cloudflared` | Cloudflare Tunnel that exposes internal services on the shared `web` network. |
 | `home_assistant` | `home_assistant` | `homeassistant`, `mosquitto` | Home automation hub plus a local MQTT broker for device integrations. |
 | `jellyfin` | `jellyfin` | `qbittorrent`, `jellyfin`, `flaresolverr`, `seerr`, `prowlarr`, `sonarr`, `radarr`, `bazarr` | LAN-only media streaming, requests, download automation, automatic subtitles, and Cloudflare-protected indexer access through FlareSolverr. |
+| `kopia` | `kopia` | `kopia` | Backup server for the Compose projects, `/srv/appdata`, and the `n8n_data` volume. |
 | `n8n` | `n8n` | `n8n` | Workflow automation service backed by a persistent SQLite data volume. |
 | `portainer` | `portainer` | `portainer` | Docker management UI for the homelab. |
 | `twingate` | `twingate` | `twingate-smooth-scorpion` | Twingate Connector that provides private-network access to resources configured in Twingate. |
+| `uptime_kuma` | `uptime_kuma` | `uptime-kuma` | Uptime monitoring and status dashboard. |
 
 The Jellyfin stack intentionally excludes LAN file sharing; media access is handled through Jellyfin and the automation apps.
 
@@ -32,6 +34,7 @@ docker network create web
   - `home_assistant/mosquitto/config/mosquitto.conf`
   - `cloudflared/cloudflared/*`
   - `adguard/conf/*` and `adguard/work/*` (AdGuard Home configuration and runtime state)
+  - Kopia is initialized through its web UI; its local state is kept in `kopia/config`, `kopia/cache`, `kopia/logs`, and `kopia/rclone`.
 
 ## Using The Root Makefile
 
@@ -55,7 +58,7 @@ Plain `make` still defaults to `make up`.
 | `make logs STACK=api` | Streams logs for one stack. Optional: `SERVICE=api` and `TAIL=200`. |
 | `make config STACK=api` | Renders the merged Compose config for inspection. |
 
-`STACK` must match one of: `adguard`, `api`, `cloudflared`, `home_assistant`, `jellyfin`, `n8n`, `portainer`, `twingate`.
+`STACK` must match one of: `adguard`, `api`, `cloudflared`, `home_assistant`, `jellyfin`, `kopia`, `n8n`, `portainer`, `twingate`, `uptime_kuma`.
 
 ## When To Use `make` vs Direct Compose Commands
 
@@ -111,3 +114,18 @@ make logs STACK=adguard SERVICE=adguardhome
 ```
 
 AdGuard Home stores durable state in `adguard/conf` and `adguard/work`. Back up both directories together before moving or rebuilding the service. Its initial setup port (`3000`) is intentionally not published; the existing setup uses the administration interface on port `8081`.
+
+## Kopia
+
+Kopia's web UI listens on port `51515`; open `https://<host-ip>:51515` from the LAN and sign in with `KOPIA_UI_USERNAME` and `KOPIA_UI_PASSWORD` from the root `.env`. The server uses a locally generated TLS certificate, so the browser will warn until that certificate is trusted. See the [Kopia runbook](kopia/README.md) for repository setup, verification, restore testing, and recovery-sensitive files.
+
+The service can back up the Compose repository (`/sources/containers`), `/srv/appdata`, and the external `n8n_data` volume. Configure the repository and backup policies in the Kopia UI. Keep `KOPIA_REPOSITORY_PASSWORD` in `.env`; it is required when connecting to the encrypted repository.
+
+Manage it with the root shortcuts:
+
+```bash
+make up STACK=kopia
+make logs STACK=kopia SERVICE=kopia
+```
+
+`kopia/config`, `kopia/cache`, `kopia/logs`, `kopia/rclone`, and `kopia/restore` are machine-local state. They are intentionally ignored by Git because they can contain credentials, private keys, caches, logs, or restored data. Commit `kopia/docker-compose.yml` only.

@@ -51,3 +51,10 @@ adguard/work/
 
 # Backups
 backups/
+
+# Kopia local state, credentials, and restored content.
+kopia/config/
+kopia/cache/
+kopia/logs/
+kopia/rclone/
+kopia/restore/

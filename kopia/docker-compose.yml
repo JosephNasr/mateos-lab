@@ -1,0 +1,50 @@
+services:
+  kopia:
+    image: kopia/kopia:0.23.1
+    container_name: kopia
+    restart: unless-stopped
+
+    user: "0:0"
+
+    environment:
+      TZ: ${TIMEZONE}
+      KOPIA_PASSWORD: ${KOPIA_REPOSITORY_PASSWORD}
+
+    ports:
+      - "51515:51515"
+
+    command:
+      - server
+      - start
+      - --address=0.0.0.0:51515
+      - --tls-cert-file=/app/config/server.cert
+      - --tls-key-file=/app/config/server.key
+      - --server-username=${KOPIA_UI_USERNAME}
+      - --server-password=${KOPIA_UI_PASSWORD}
+      - --content-cache-size-mb=512
+      - --content-cache-size-limit-mb=1024
+
+    volumes:
+      - ./config:/app/config
+      - ./cache:/app/cache
+      - ./logs:/app/logs
+      - ./rclone:/app/rclone
+      - ./restore:/restore
+
+      # backup sources
+      - /home/zeezoux/containers:/sources/containers:ro
+      - /srv/appdata:/sources/appdata:ro
+
+      # n8n uses a named Docker volume
+      - n8n_data:/sources/n8n:ro
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  n8n_data:
+    external: true
+    name: n8n_n8n_data
