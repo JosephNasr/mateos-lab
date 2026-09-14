@@ -6,27 +6,6 @@
 # - Optional local-first building blocks (MQTT now, Zigbee later)
 
 services:
-  docker-socket-proxy:
-    image: tecnativa/docker-socket-proxy:latest
-    container_name: docker-socket-proxy
-    restart: unless-stopped
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    tmpfs:
-      - /tmp
-      - /run
-    environment:
-      CONTAINERS: "1"
-      INFO: "1"
-      VERSION: "1"
-    ports:
-      - "127.0.0.1:2375:2375"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-
   homeassistant:
     container_name: homeassistant
     # Update this exact release deliberately, then run `make update STACK=home_assistant`.
@@ -34,9 +13,6 @@ services:
     network_mode: host
     privileged: true
     restart: unless-stopped
-    depends_on:
-      - docker-socket-proxy
-
     environment:
       - TZ=${TIMEZONE}
       - PI_IP=${PI_IP}

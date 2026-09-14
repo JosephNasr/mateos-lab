@@ -9,36 +9,3 @@ frontend:
 automation: !include automations.yaml
 script: !include scripts.yaml
 scene: !include scenes.yaml
-
-# Container observability via a localhost-only, read-only Docker socket proxy.
-# Container controls are deliberately disabled.
-monitor_docker:
-  - name: Docker
-    url: http://127.0.0.1:2375
-    scan_interval: 30
-    monitored_conditions:
-      - containers_running
-      - containers_stopped
-      - containers_total
-      - containers_1cpu_percentage
-      - containers_memory
-      - state
-      - health
-      - status
-      - uptime
-      - 1cpu_percentage
-      - memory
-      - memory_percentage
-      - network_speed_up
-      - network_speed_down
-    switchenabled: false
-    buttonenabled: false
-
-lovelace:
-  dashboards:
-    docker-observability:
-      mode: yaml
-      title: Docker
-      icon: mdi:docker
-      show_in_sidebar: true
-      filename: docker_observability.yaml
