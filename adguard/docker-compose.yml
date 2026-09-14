@@ -3,6 +3,7 @@ services:
     image: adguard/adguardhome:latest
     container_name: adguardhome
     restart: unless-stopped
+    user: "${ADGUARD_UID:-1000}:${ADGUARD_GID:-1000}"
 
     ports:
       # DNS
