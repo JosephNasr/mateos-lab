@@ -42,6 +42,9 @@ uptime_kuma/data/
 adguard/conf/AdGuardHome.yaml
 adguard/work/
 
+# ntfy authentication database, message cache, and attachments.
+ntfy/data/
+
 # Agents
 .codex
 
