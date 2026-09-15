@@ -30,6 +30,15 @@ services:
     networks:
       - docker_proxy
 
+    security_opt:
+      - no-new-privileges:true
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   uptime-kuma:
     # Uptime Kuma's installed `:2` image has no embedded release version.
     # The digest is therefore the exact, reproducible pin for this deployment.

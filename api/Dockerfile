@@ -1,5 +1,5 @@
 # --- Build stage ---
-FROM node:18-slim AS builder
+FROM node:24.21.0-slim AS builder
 WORKDIR /app
 
 # Install deps with reproducible lockfile semantics
@@ -10,7 +10,7 @@ RUN npm ci --omit=dev  # installs only prod deps with npm v7+
 COPY . .
 
 # --- Runtime stage ---
-FROM node:18-slim
+FROM node:24.21.0-slim
 WORKDIR /app
 
 # Copy files for runtime and set ownership

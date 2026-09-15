@@ -10,6 +10,7 @@ coverage
 logs
 tmp
 .git
+.codex
 .gitignore
 .DS_Store
 Thumbs.db
