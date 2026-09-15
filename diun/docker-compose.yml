@@ -2,7 +2,8 @@ name: diun
 
 services:
   socket-proxy:
-    image: lscr.io/linuxserver/socket-proxy:latest
+    # Locked to the currently deployed build; update deliberately after DIUN alerts.
+    image: lscr.io/linuxserver/socket-proxy:3.4.4-r0-ls97
     container_name: diun-socket-proxy
     restart: unless-stopped
 
@@ -18,6 +19,12 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
     read_only: true
+
+    labels:
+      diun.watch_repo: "true"
+      diun.sort_tags: semver
+      diun.include_tags: '^[0-9]+.*-ls[0-9]+$'
+      diun.max_tags: "1"
 
     tmpfs:
       - /run

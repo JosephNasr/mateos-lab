@@ -41,7 +41,8 @@ services:
   # Recommended even if you’re not using Zigbee yet:
   # MQTT becomes useful for many “local-first” paths later (Zigbee2MQTT, ESPHome, Tasmota, etc.)
   mosquitto:
-    image: eclipse-mosquitto:2
+    # Update this exact release deliberately, then run `make update STACK=home_assistant`.
+    image: eclipse-mosquitto:2.1.2-alpine
     container_name: mosquitto
     restart: unless-stopped
     ports:
@@ -51,6 +52,12 @@ services:
       - ./mosquitto/config:/mosquitto/config
       - ./mosquitto/data:/mosquitto/data
       - ./mosquitto/log:/mosquitto/log
+
+    labels:
+      diun.watch_repo: "true"
+      diun.sort_tags: semver
+      diun.include_tags: '^[0-9]+\.[0-9]+\.[0-9]+-alpine$'
+      diun.max_tags: "1"
 
     logging:
       driver: "json-file"
